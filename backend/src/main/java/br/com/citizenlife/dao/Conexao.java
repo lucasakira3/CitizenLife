@@ -33,7 +33,9 @@ public final class Conexao {
             "UK_CL_ROTA_NOME", "Você já tem uma rota com este nome.",
             "UK_CL_ENDERECO_APELIDO", "Você já tem um endereço com este apelido.",
             "UK_CL_FEIRA_RUA_DIA", "Já existe uma feira para esta rua neste dia.",
-            "PK_CL_CIDADAO_FEIRA", "Esta feira já está na sua lista de favoritas.");
+            "PK_CL_CIDADAO_FEIRA", "Esta feira já está na sua lista de favoritas.",
+            "UK_CL_PONTO_APOIO_NOME", "Já existe um ponto de apoio com este nome.",
+            "UK_CL_CONTATO_NOME", "Você já tem um contato com este nome.");
 
     private Conexao() {
     }

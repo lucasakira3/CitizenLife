@@ -5,6 +5,7 @@ import DadosConta from "../components/perfil/DadosConta.jsx";
 import Enderecos from "../components/perfil/Enderecos.jsx";
 import Locomocao from "../components/perfil/Locomocao.jsx";
 import MinhasFeiras from "../components/perfil/MinhasFeiras.jsx";
+import MeusContatos from "../components/perfil/MeusContatos.jsx";
 import MinhasRotas from "../components/perfil/MinhasRotas.jsx";
 import ResumoConta from "../components/perfil/ResumoConta.jsx";
 import { useApp } from "../contexto.js";
@@ -27,6 +28,7 @@ const ABAS = {
     { id: "enderecos", rotulo: "Meus endereços", icone: "PIN", Componente: Enderecos },
   ],
   alimentacao: [{ id: "feiras", rotulo: "Minhas feiras", icone: "ALIMENTACAO", Componente: MinhasFeiras }],
+  seguranca: [{ id: "contatos", rotulo: "Contatos de emergência", icone: "TELEFONE", Componente: MeusContatos }],
 };
 
 /**

@@ -31,6 +31,25 @@ export const DOMINIO = {
     { codigo: "ESTUDO", rotulo: "Estudo", unico: false },
     { codigo: "OUTRO", rotulo: "Outro", unico: false },
   ],
+  /** Segurança: tipos de ponto de apoio (mesmos códigos do CHECK de CL_PONTO_APOIO). */
+  tiposPontoApoio: [
+    { codigo: "DELEGACIA", rotulo: "Delegacia", icone: "ESCUDO" },
+    { codigo: "DELEGACIA_MULHER", rotulo: "Delegacia da Mulher", icone: "PESSOA" },
+    { codigo: "POLICIA_MILITAR", rotulo: "Polícia Militar", icone: "ESCUDO" },
+    { codigo: "GUARDA_MUNICIPAL", rotulo: "Guarda Civil", icone: "ESCUDO" },
+    { codigo: "SAUDE_24H", rotulo: "Saúde 24h", icone: "MAIS" },
+    { codigo: "ACOLHIMENTO", rotulo: "Acolhimento", icone: "HABITACAO" },
+  ],
+  zonas: ["Centro", "Zona Norte", "Zona Sul", "Zona Leste", "Zona Oeste"],
+  /** Números nacionais de emergência, sempre visíveis no pilar Segurança. */
+  telefonesEmergencia: [
+    { numero: "190", rotulo: "Polícia Militar" },
+    { numero: "192", rotulo: "SAMU" },
+    { numero: "193", rotulo: "Bombeiros" },
+    { numero: "153", rotulo: "Guarda Civil" },
+    { numero: "180", rotulo: "Central da Mulher" },
+  ],
+  maximoContatos: 5,
   /** Faixas do risco, só para a legenda (o Java é quem classifica). */
   limitesRisco: { moderado: 4, alto: 7, critico: 10, alerta: 4 },
   maximoRotas: 10,

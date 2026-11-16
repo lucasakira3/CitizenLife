@@ -9,6 +9,7 @@ import "./styles/perfil.css";
 import "./styles/mapa.css";
 import "./styles/rota.css";
 import "./styles/movimento.css";
+import "./styles/seguranca.css";
 
 createRoot(document.getElementById("root")).render(
   <React.StrictMode>

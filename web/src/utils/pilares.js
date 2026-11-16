@@ -1,5 +1,5 @@
 // Os seis pilares da vida na cidade que o Citizen Life reúne, na ordem do menu.
-// Mobilidade já funciona; os outros mostram o que vem na próxima versão.
+// Mobilidade, Alimentação e Segurança já funcionam; os outros mostram o que vem na próxima versão.
 
 export const PILARES = [
   {
@@ -48,7 +48,7 @@ export const PILARES = [
     cor: "var(--pilar-seguranca)",
     nome: "Segurança",
     icone: "SEGURANCA",
-    disponivel: false,
+    disponivel: true,
     resumo: "Delegacias, bases da guarda e pontos de apoio abertos agora.",
     consulta: "Onde pedir ajuda perto de você",
     planos: [

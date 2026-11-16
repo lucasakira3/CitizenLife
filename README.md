@@ -59,8 +59,8 @@ O Citizen Life reúne seis pilares da vida na cidade. Cada um começa por uma **
 |:-:|---|---|:-:|
 | 🧭 | **Mobilidade** | Rota segura e mapa de riscos | ✅ **pronto** |
 | 🎓 | Educação | Vagas e cursos gratuitos | 🚧 em breve |
-| 🍴 | Alimentação | Comida acessível perto de você | 🚧 em breve |
-| 🛡️ | Segurança | Onde pedir ajuda perto de você | 🚧 em breve |
+| 🍴 | **Alimentação** | Feiras livres por dia e por zona | ✅ **pronto** |
+| 🛡️ | **Segurança** | Onde pedir ajuda perto de você | ✅ **pronto** |
 | 🏠 | Habitação | Programas de moradia para você | 🚧 em breve |
 | 🌳 | Lazer | Programação gratuita por região | 🚧 em breve |
 
@@ -69,6 +69,18 @@ Na **Mobilidade**, o cidadão:
 - 🗺️ **planeja a rota** da saída ao destino e escolhe como vai (carro, moto, ônibus, aplicativo, a pé ou bicicleta). Recebe a rota **mais rápida** e a **mais segura**, que desvia das vias perigosas para aquele meio de transporte;
 - 🚨 **vê o mapa de riscos**: São Paulo em 3D com as ocorrências ativas (alagamento, acidente, queda de árvore, semáforo apagado, deslizamento, via bloqueada, insegurança) na cor do risco;
 - 👤 **guarda tudo no perfil**: rotas do dia a dia com alertas, o meio de transporte e endereços como casa e trabalho, que viram atalhos na hora de planejar.
+
+Na **Alimentação**, o cidadão:
+
+- 🥬 **vê as feiras livres** da cidade, com rua, zona, dia da semana e horário;
+- ⭐ **favorita as feiras** que frequenta e, ao entrar, vê se tem **feira favorita hoje**.
+
+Na **Segurança**, o cidadão:
+
+- 📞 **liga para a emergência** com um toque (190, 192, 193, 153 e 180), sempre no topo da página;
+- 🛡️ **encontra onde pedir ajuda**: delegacias, Delegacia da Mulher, bases da PM e da Guarda Civil, saúde 24h e centros de acolhimento, com filtro por zona e por tipo e o selo **"Aberto agora"** (calculado no Java pelo horário de São Paulo);
+- 🏠 **vê os 3 pontos mais perto de casa**, medidos a partir do endereço salvo na Mobilidade;
+- 👥 **guarda contatos de emergência** no perfil (até 5), com link para ligar.
 
 ---
 
@@ -91,6 +103,14 @@ Na **Mobilidade**, o cidadão:
     <td><b>Perfil</b> · barra lateral com a conta e os pilares; as funções de cada pilar ficam em abas.</td>
     <td><b>Como me locomovo</b> · um clique escolhe o meio de transporte e já salva.</td>
   </tr>
+  <tr>
+    <td><img src="docs/telas/seguranca.jpg" alt="Pilar Segurança com os telefones de emergência e os pontos de apoio mais perto de casa" /></td>
+    <td><img src="docs/telas/contatos.jpg" alt="Aba Contatos de emergência no perfil" /></td>
+  </tr>
+  <tr>
+    <td><b>Segurança</b> · telefones de emergência no topo e os pontos de apoio mais perto de casa, com o que está aberto agora.</td>
+    <td><b>Contatos de emergência</b> · quem avisar numa emergência; um toque liga para a pessoa.</td>
+  </tr>
 </table>
 
 <details>
@@ -102,12 +122,14 @@ O menu é o mesmo em todas as páginas: os seis pilares, cada um com a sua cor. 
 
 | Página | Quem usa | O que tem |
 |---|---|---|
-| **Início** | todos | Os seis pilares em cards. Mobilidade está disponível; os outros, em breve |
+| **Início** | todos | Os seis pilares em cards. Mobilidade, Alimentação e Segurança estão disponíveis; os outros, em breve |
 | **Mobilidade** | todos | As duas consultas do pilar e as faixas de risco |
 | **Planejar rota** | todos (salvar: com conta) | Saída e destino com busca de ruas e bairros (ou clique no mapa), atalhos para os endereços salvos, rota mais rápida e mais segura com tempo, distância e ocorrências no caminho |
 | **Mapa de riscos** | todos | São Paulo em tela cheia com dados do OpenStreetMap, placas 3D das ocorrências, câmera livre (arrastar, zoom, girar, inclinar, 2D) e filtro por zona |
-| **Perfil** | com conta | **Resumo** (alertas, rotas e endereços), **Meus dados** (CRUD da conta) e, em **Mobilidade**, as abas *Minhas rotas* (alertas e CRUD das rotas), *Como me locomovo* e *Meus endereços* (CRUD). Os outros pilares mostram as abas que vão ter |
-| **Educação, Alimentação, Segurança, Habitação, Lazer** | todos | O que a primeira consulta do pilar vai trazer |
+| **Perfil** | com conta | **Resumo** (alertas, rotas e endereços), **Meus dados** (CRUD da conta) e, em **Mobilidade**, as abas *Minhas rotas* (alertas e CRUD das rotas), *Como me locomovo* e *Meus endereços* (CRUD), em **Segurança**, a aba *Contatos de emergência* (CRUD) e, em **Alimentação**, a aba *Minhas feiras* (favoritar e remover). Os outros pilares mostram as abas que vão ter |
+| **Alimentação** | todos (feira de hoje: com conta) | Feiras livres disponíveis e a feira favorita de hoje |
+| **Segurança** | todos (perto de casa: com conta) | Telefones de emergência, os 3 pontos de apoio mais perto de casa e a lista com filtros por zona, tipo e "aberto agora" |
+| **Educação, Habitação, Lazer** | todos | O que a primeira consulta do pilar vai trazer |
 | **Entrar** | todos | Login, cadastro simples (nome, e-mail e senha) e duas contas de teste |
 
 As telas validam os campos antes de enviar e mostram o erro ao lado de cada campo; o Java valida de novo. A interface funciona em celular e desktop.
@@ -186,7 +208,7 @@ Se o `JAVA_HOME` sair vazio, defina com o caminho onde o JDK foi instalado e **f
 2. Abra o arquivo [`sql/script.sql`](sql/script.sql).
 3. Execute com **Executar Script (F5)**.
 
-O script cria as **6 tabelas**, insere os dados de demonstração e, no fim, mostra a contagem de linhas de cada tabela. Pode ser executado de novo a qualquer momento: o bloco inicial apaga só as tabelas do projeto (prefixo `CL_`).
+O script cria as **10 tabelas**, insere os dados de demonstração e, no fim, mostra a contagem de linhas de cada tabela. Pode ser executado de novo a qualquer momento: o bloco inicial apaga só as tabelas do projeto (prefixo `CL_`).
 
 > **Oracle da FIAP:** host `oracle.fiap.com.br`, porta `1521`, SID `ORCL`, usuário `rm` + seu número. Algumas redes (de empresa ou universidade) bloqueiam a porta 1521; se a conexão der *timeout* (ORA-12170), teste de outra rede.
 
@@ -257,7 +279,7 @@ React (fetch /api/...)
   → Oracle
 ```
 
-São **20 classes** em 6 pacotes, cada uma com uma responsabilidade clara.
+São **28 classes** em 6 pacotes, cada uma com uma responsabilidade clara.
 
 <details>
 <summary><b>Estrutura de pastas</b></summary>
@@ -269,9 +291,9 @@ backend/                          API Java
 ├── db.properties.example         modelo de configuração do banco
 └── src/main/java/br/com/citizenlife/
     ├── CitizenLife.java   main: liga as camadas e sobe o HttpServer
-    ├── model/        Cidadao, Rota, Via, Endereco, Ocorrencia (com a regra do risco)
+    ├── model/        Cidadao, Rota, Via, Endereco, Ocorrencia (com a regra do risco), Feira, PontoApoio, ContatoEmergencia
     ├── dao/          CrudDao<T>, um DAO por tabela principal e a Conexao (JDBC)
-    ├── service/      Cidadao, Rota, Endereco e Ocorrencia: validação, dono e limites
+    ├── service/      Cidadao, Rota, Endereco, Ocorrencia, Feira e Seguranca: validação, dono e limites
     ├── api/          Servidor (todas as rotas HTTP num switch) e Json
     └── exception/    CitizenLifeException (com o status HTTP) e ValidacaoException
 web/                              React + Vite
@@ -294,10 +316,10 @@ integrantes.txt
 
 <br />
 
-- **Interface:** `CrudDao<T>` (inserir, listar, buscar, atualizar e excluir), implementada por `CidadaoDao`, `RotaDao` e `EnderecoDao`. O `Servidor` implementa `HttpHandler`, do próprio JDK.
+- **Interface:** `CrudDao<T>` (inserir, listar, buscar, atualizar e excluir), implementada por `CidadaoDao`, `RotaDao`, `EnderecoDao`, `FeiraDao`, `PontoApoioDao` e `ContatoEmergenciaDao`. O `Servidor` implementa `HttpHandler`, do próprio JDK.
 - **Herança:** `ValidacaoException` herda de `CitizenLifeException`, que herda de `RuntimeException` e carrega o status HTTP.
-- **Encapsulamento:** atributos privados com getters e setters; as regras ficam nas services e no próprio modelo (`Ocorrencia.calcularRisco`).
-- **Relacionamentos:** `Cidadao` 1:N `Rota` e `Endereco`; `Rota` N:N `Via` (com a ordem); `Ocorrencia` N:1 `Via`.
+- **Encapsulamento:** atributos privados com getters e setters; as regras ficam nas services e no próprio modelo (`Ocorrencia.calcularRisco`, `PontoApoio.estaAberto`).
+- **Relacionamentos:** `Cidadao` 1:N `Rota` e `Endereco`; `Rota` N:N `Via` (com a ordem); `Ocorrencia` N:1 `Via`; `Cidadao` N:N `Feira` (favoritas); `Cidadao` 1:N `ContatoEmergencia`.
 
 </details>
 
@@ -340,6 +362,14 @@ Todas as respostas são JSON. Operações que exigem login recebem o id do cidad
 | POST | `/api/rotas/avaliar` | Risco de um caminho recém-calculado (`{modal, vias}`) | todos |
 | GET | `/api/vias` | Vias cadastradas, com a zona | todos |
 | GET | `/api/ocorrencias?modal=MOTO` | Ocorrências com o risco para o modal, da maior para a menor | todos |
+| GET | `/api/feiras?zona=Centro&dia=QUARTA` | Feiras livres (filtros opcionais) | todos |
+| GET, POST | `/api/cidadaos/{id}/feiras` | Listar e favoritar feiras: `{idFeira}` | o próprio cidadão |
+| DELETE | `/api/cidadaos/{id}/feiras/{idFeira}` | Remover das favoritas | o próprio cidadão |
+| GET | `/api/cidadaos/{id}/feira-hoje` | A feira favorita de hoje (204 se não houver) | o próprio cidadão |
+| GET | `/api/pontos-apoio?zona=Centro&tipo=DELEGACIA&abertoAgora=true` | Pontos de apoio com o "aberto agora" calculado (filtros opcionais) | todos |
+| GET | `/api/cidadaos/{id}/pontos-proximos` | Os 3 pontos de apoio mais perto da casa (204 sem endereço salvo) | o próprio cidadão |
+| GET, POST | `/api/cidadaos/{id}/contatos` | Listar e salvar contatos de emergência: `{nome, telefone, parentesco}` | o próprio cidadão |
+| PUT, DELETE | `/api/cidadaos/{id}/contatos/{idContato}` | Editar e excluir um contato | o próprio cidadão |
 
 </details>
 
@@ -362,7 +392,7 @@ O mapa vem do [OpenStreetMap](https://www.openstreetmap.org/copyright) (© colab
 
 ## 🗄️ Banco de dados
 
-**6 tabelas** com prefixo `CL_`, uma delas associativa N:N.
+**10 tabelas** com prefixo `CL_`, duas delas associativas N:N.
 
 | Tabela | Papel |
 |---|---|
@@ -372,19 +402,23 @@ O mapa vem do [OpenStreetMap](https://www.openstreetmap.org/copyright) (© colab
 | `CL_ROTA` | rota salva: saída, destino e distância; nome **UNIQUE** por cidadão |
 | `CL_ROTA_VIA` | **N:N** rota × via, com a ordem no caminho |
 | `CL_ENDERECO` | casa, trabalho, estudo, outro: tipo **CHECK**, apelido **UNIQUE** por cidadão |
+| `CL_FEIRA` | feira livre: zona e dia **CHECK**, rua **UNIQUE** por dia |
+| `CL_CIDADAO_FEIRA` | **N:N** cidadão × feira (favoritas) |
+| `CL_PONTO_APOIO` | onde pedir ajuda: tipo e zona **CHECK**, nome **UNIQUE**, horário (24h ou abre/fecha, **CHECK**) e posição no mapa |
+| `CL_CONTATO_EMERGENCIA` | contatos do cidadão (N:1): nome **UNIQUE** por cidadão |
 
-Todas as constraints têm nome explícito (`PK_`, `FK_`, `UK_`, `CK_`), os IDs usam `GENERATED ALWAYS AS IDENTITY` e os INSERTs buscam as chaves estrangeiras por campos únicos, sem depender de IDs fixos. Os dados de demonstração trazem 6 cidadãos, 45 vias, 32 ocorrências espalhadas pelas cinco zonas, 8 rotas e 12 endereços.
+Todas as constraints têm nome explícito (`PK_`, `FK_`, `UK_`, `CK_`), os IDs usam `GENERATED ALWAYS AS IDENTITY` e os INSERTs buscam as chaves estrangeiras por campos únicos, sem depender de IDs fixos. Os dados de demonstração trazem 6 cidadãos, 45 vias, 32 ocorrências espalhadas pelas cinco zonas, 8 rotas, 12 endereços, 6 feiras, 27 pontos de apoio e 4 contatos de emergência. Os pontos de apoio são de demonstração: o telefone de cada um é a central do serviço (197, 190, 153, 192, 180 ou 156).
 
 ---
 
 ## 📐 Diagramas
 
 <p align="center">
-  <img src="docs/diagrama-er.png" alt="Diagrama entidade-relacionamento com as 6 tabelas" width="860" />
+  <img src="docs/diagrama-er.png" alt="Diagrama entidade-relacionamento com as 10 tabelas" width="860" />
 </p>
 
 <p align="center">
-  <img src="docs/diagrama-classes-0-visao-geral.png" alt="Visão geral das 20 classes, camada por camada" width="860" />
+  <img src="docs/diagrama-classes-0-visao-geral.png" alt="Visão geral das 28 classes, camada por camada" width="860" />
 </p>
 
 - [Diagrama entidade-relacionamento (PDF)](docs/diagrama-er.pdf)
@@ -417,7 +451,8 @@ Os diagramas por camada mostram só o que é público e os atributos do modelo (
 
 ## 🔭 Próximos passos
 
-- **Os outros cinco pilares**, cada um com a sua primeira consulta e as suas abas no perfil: cursos gratuitos, feiras livres, pontos de apoio e contatos de emergência, programas de moradia e programação gratuita.
+- **Os outros pilares**, cada um com a sua primeira consulta e as suas abas no perfil: cursos gratuitos, programas de moradia e programação gratuita.
+- **Segurança:** mostrar os pontos de apoio no mapa 3D e sugerir o mais próximo quando a rota passa por uma ocorrência de insegurança.
 - **Mobilidade:** relatos de ocorrência feitos pelos próprios cidadãos e confirmados pelos órgãos da cidade, cruzados com sensores de nível de água, câmeras e dados de trânsito e clima.
 
 ---

@@ -3,9 +3,11 @@ package br.com.citizenlife.api;
 import br.com.citizenlife.exception.CitizenLifeException;
 import br.com.citizenlife.exception.ValidacaoException;
 import br.com.citizenlife.model.Cidadao;
+import br.com.citizenlife.model.ContatoEmergencia;
 import br.com.citizenlife.model.Endereco;
 import br.com.citizenlife.model.Feira;
 import br.com.citizenlife.model.Ocorrencia;
+import br.com.citizenlife.model.PontoApoio;
 import br.com.citizenlife.model.Rota;
 import br.com.citizenlife.model.Via;
 import br.com.citizenlife.service.CidadaoService;
@@ -13,11 +15,13 @@ import br.com.citizenlife.service.EnderecoService;
 import br.com.citizenlife.service.FeiraService;
 import br.com.citizenlife.service.OcorrenciaService;
 import br.com.citizenlife.service.RotaService;
+import br.com.citizenlife.service.SegurancaService;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.time.LocalTime;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -43,14 +47,16 @@ public class Servidor implements HttpHandler {
     private final EnderecoService enderecos;
     private final FeiraService feiras;
     private final OcorrenciaService ocorrencias;
+    private final SegurancaService seguranca;
 
     public Servidor(CidadaoService cidadaos, RotaService rotas, EnderecoService enderecos,
-                    FeiraService feiras, OcorrenciaService ocorrencias) {
+                    FeiraService feiras, OcorrenciaService ocorrencias, SegurancaService seguranca) {
         this.cidadaos = cidadaos;
         this.rotas = rotas;
         this.enderecos = enderecos;
         this.feiras = feiras;
         this.ocorrencias = ocorrencias;
+        this.seguranca = seguranca;
     }
 
     @Override
@@ -135,6 +141,38 @@ public class Servidor implements HttpHandler {
             case "POST /api/cidadaos/{id}/feiras" -> feira(feiras.favoritar(ids.get(0), longa(json, "idFeira"), ator));
             case "DELETE /api/cidadaos/{id}/feiras/{id}" -> {
                 feiras.desfavoritar(ids.get(0), ids.get(1), ator);
+                yield null;
+            }
+
+            // Segurança: onde pedir ajuda e contatos de emergência
+            case "GET /api/pontos-apoio" -> {
+                LocalTime agora = seguranca.agora();
+                yield seguranca.listarPontos(parametros.get("zona"), parametros.get("tipo"),
+                                "true".equals(parametros.get("abertoAgora")))
+                        .stream().map(p -> pontoApoio(p, agora)).toList();
+            }
+            case "GET /api/cidadaos/{id}/pontos-proximos" -> {
+                SegurancaService.Proximos proximos = seguranca.proximosDeCasa(ids.get(0), ator);
+                if (proximos == null) {
+                    yield null;
+                }
+                LocalTime agora = seguranca.agora();
+                Map<String, Object> mapa = new LinkedHashMap<>();
+                mapa.put("referencia", endereco(proximos.referencia()));
+                mapa.put("pontos", proximos.pontos().stream().map(item -> {
+                    Map<String, Object> ponto = pontoApoio(item.ponto(), agora);
+                    ponto.put("distanciaMetros", item.distanciaMetros());
+                    return ponto;
+                }).toList());
+                yield mapa;
+            }
+            case "GET /api/cidadaos/{id}/contatos" ->
+                    seguranca.listarContatos(ids.get(0), ator).stream().map(this::contato).toList();
+            case "POST /api/cidadaos/{id}/contatos" -> contato(seguranca.criarContato(ids.get(0), lerContato(json), ator));
+            case "PUT /api/cidadaos/{id}/contatos/{id}" ->
+                    contato(seguranca.atualizarContato(ids.get(0), ids.get(1), lerContato(json), ator));
+            case "DELETE /api/cidadaos/{id}/contatos/{id}" -> {
+                seguranca.excluirContato(ids.get(0), ids.get(1), ator);
                 yield null;
             }
 
@@ -225,6 +263,33 @@ public class Servidor implements HttpHandler {
         return mapa;
     }
 
+    /** O ponto de apoio com o "aberto agora" já calculado pelo Java. */
+    private Map<String, Object> pontoApoio(PontoApoio ponto, LocalTime agora) {
+        Map<String, Object> mapa = new LinkedHashMap<>();
+        mapa.put("id", ponto.getId());
+        mapa.put("nome", ponto.getNome());
+        mapa.put("tipo", ponto.getTipo());
+        mapa.put("bairro", ponto.getBairro());
+        mapa.put("zona", ponto.getZona());
+        mapa.put("telefone", ponto.getTelefone());
+        mapa.put("aberto24h", ponto.isAberto24h());
+        mapa.put("abre", ponto.getAbre());
+        mapa.put("fecha", ponto.getFecha());
+        mapa.put("abertoAgora", ponto.estaAberto(agora));
+        mapa.put("local", ponto(ponto.getBairro(), ponto.getX(), ponto.getY()));
+        return mapa;
+    }
+
+    private Map<String, Object> contato(ContatoEmergencia contato) {
+        Map<String, Object> mapa = new LinkedHashMap<>();
+        mapa.put("id", contato.getId());
+        mapa.put("nome", contato.getNome());
+        mapa.put("telefone", contato.getTelefone());
+        mapa.put("telefoneDigitos", contato.getTelefoneDigitos());
+        mapa.put("parentesco", contato.getParentesco());
+        return mapa;
+    }
+
     private Map<String, Object> ponto(String descricao, double x, double y) {
         Map<String, Object> mapa = new LinkedHashMap<>();
         mapa.put("descricao", descricao);
@@ -259,6 +324,14 @@ public class Servidor implements HttpHandler {
         endereco.setX(numero(local, "x"));
         endereco.setY(numero(local, "y"));
         return endereco;
+    }
+
+    private ContatoEmergencia lerContato(Map<String, Object> json) {
+        ContatoEmergencia contato = new ContatoEmergencia();
+        contato.setNome(texto(json, "nome"));
+        contato.setTelefone(texto(json, "telefone"));
+        contato.setParentesco(texto(json, "parentesco"));
+        return contato;
     }
 
     private List<Long> idsVias(Map<String, Object> json) {

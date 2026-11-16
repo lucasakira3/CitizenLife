@@ -13,6 +13,7 @@ import MobilidadePage from "./pages/MobilidadePage.jsx";
 import NaoEncontradaPage from "./pages/NaoEncontradaPage.jsx";
 import PerfilPage from "./pages/PerfilPage.jsx";
 import PlanejarRotaPage from "./pages/PlanejarRotaPage.jsx";
+import SegurancaPage from "./pages/SegurancaPage.jsx";
 
 // Os caminhos fixos vêm antes de "/:pilar", que atende os pilares ainda em construção.
 const ROTAS = [
@@ -21,6 +22,7 @@ const ROTAS = [
   ["/mobilidade/rota", PlanejarRotaPage],
   ["/mobilidade/mapa", MapaPage],
   ["/alimentacao", AlimentacaoPage],
+  ["/seguranca", SegurancaPage],
   ["/perfil", PerfilPage],
   ["/perfil/:secao", PerfilPage],
   ["/perfil/:pilar/:secao", PerfilPage],
@@ -81,7 +83,7 @@ export default function App() {
   // Rótulos de cada código (MOTO → "Moto"), montados uma vez a partir de utils/dominio.js
   const rotulos = useMemo(() => {
     const mapa = {};
-    ["modais", "tiposOcorrencia", "niveisRisco", "tiposEndereco"].forEach((grupo) => {
+    ["modais", "tiposOcorrencia", "niveisRisco", "tiposEndereco", "tiposPontoApoio"].forEach((grupo) => {
       mapa[grupo] = Object.fromEntries(DOMINIO[grupo].map((item) => [item.codigo, item.rotulo]));
     });
     return mapa;

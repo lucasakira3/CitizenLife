@@ -57,7 +57,42 @@ classDiagram
         +calcularRisco(String modal) double
         +nivel(double risco)$ String
     }
+    class Feira {
+        -Long id
+        -String nome
+        -String rua
+        -String zona
+        -String diaSemana
+        -String horario
+    }
+    class PontoApoio {
+        +List~String~ TIPOS$
+        +int METROS_POR_UNIDADE$
+        -Long id
+        -String nome
+        -String tipo
+        -String bairro
+        -String zona
+        -String telefone
+        -boolean aberto24h
+        -String abre
+        -String fecha
+        -double x
+        -double y
+        +estaAberto(LocalTime agora) boolean
+        +distanciaMetrosAte(double x, double y) int
+    }
+    class ContatoEmergencia {
+        -Long id
+        -Long idCidadao
+        -String nome
+        -String telefone
+        -String parentesco
+        +getTelefoneDigitos() String
+    }
     Cidadao "1" --> "0..10" Rota : salva
     Cidadao "1" --> "0..10" Endereco : guarda
     Rota "*" --> "1..*" Via : passa por
     Ocorrencia "*" --> "1" Via : acontece em
+    Cidadao "*" --> "*" Feira : favorita
+    Cidadao "1" --> "0..5" ContatoEmergencia : avisa

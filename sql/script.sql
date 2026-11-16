@@ -1,6 +1,6 @@
 -- =====================================================================
 -- Citizen Life · Global Solution 2026/2 · CitizenTech (FIAP)
--- Script Oracle: as 6 tabelas do projeto e os dados de demonstração.
+-- Script Oracle: as tabelas do projeto e os dados de demonstração.
 --
 -- Como executar (SQL Developer): abra este arquivo e use "Executar Script" (F5).
 -- Pode ser executado de novo a qualquer momento: o bloco inicial apaga só as
@@ -12,7 +12,7 @@
 -- 1. Limpeza ----------------------------------------------------------
 BEGIN
     FOR tabela IN (SELECT table_name FROM user_tables
-                    WHERE table_name IN ('CL_CIDADAO_FEIRA', 'CL_FEIRA', 'CL_ENDERECO', 'CL_ROTA_VIA', 'CL_ROTA',
+                    WHERE table_name IN ('CL_CONTATO_EMERGENCIA', 'CL_PONTO_APOIO', 'CL_CIDADAO_FEIRA', 'CL_FEIRA', 'CL_ENDERECO', 'CL_ROTA_VIA', 'CL_ROTA',
                                          'CL_OCORRENCIA', 'CL_CIDADAO', 'CL_VIA', 'CL_OCORRENCIA_VIA', 'CL_REGIAO'))
     LOOP
         EXECUTE IMMEDIATE 'DROP TABLE ' || tabela.table_name || ' CASCADE CONSTRAINTS PURGE';
@@ -129,6 +129,42 @@ CREATE TABLE cl_cidadao_feira (
     CONSTRAINT pk_cl_cidadao_feira PRIMARY KEY (id_cidadao, id_feira),
     CONSTRAINT fk_cl_cidadao_feira_cidadao FOREIGN KEY (id_cidadao) REFERENCES cl_cidadao (id_cidadao) ON DELETE CASCADE,
     CONSTRAINT fk_cl_cidadao_feira_feira FOREIGN KEY (id_feira) REFERENCES cl_feira (id_feira) ON DELETE CASCADE
+);
+
+-- Segurança: onde pedir ajuda. Delegacias, bases da PM e da GCM, saúde 24h e centros de acolhimento.
+-- pos_x e pos_y estão no mesmo sistema do mapa (e de CL_ENDERECO): 1 unidade = 25 metros.
+-- Quem não abre 24 horas informa abre e fecha no formato HH:MM.
+CREATE TABLE cl_ponto_apoio (
+    id_ponto    NUMBER(10)    GENERATED ALWAYS AS IDENTITY,
+    nome        VARCHAR2(80)  NOT NULL,
+    tipo        VARCHAR2(20)  NOT NULL,
+    bairro      VARCHAR2(60)  NOT NULL,
+    zona        VARCHAR2(20)  NOT NULL,
+    telefone    VARCHAR2(20)  NOT NULL,
+    aberto_24h  CHAR(1)       DEFAULT 'S' NOT NULL,
+    abre        VARCHAR2(5),
+    fecha       VARCHAR2(5),
+    pos_x       NUMBER(8, 2)  NOT NULL,
+    pos_y       NUMBER(8, 2)  NOT NULL,
+    CONSTRAINT pk_cl_ponto_apoio PRIMARY KEY (id_ponto),
+    CONSTRAINT uk_cl_ponto_apoio_nome UNIQUE (nome),
+    CONSTRAINT ck_cl_ponto_apoio_tipo CHECK (tipo IN ('DELEGACIA', 'DELEGACIA_MULHER', 'POLICIA_MILITAR',
+                                                      'GUARDA_MUNICIPAL', 'SAUDE_24H', 'ACOLHIMENTO')),
+    CONSTRAINT ck_cl_ponto_apoio_zona CHECK (zona IN ('Centro', 'Zona Norte', 'Zona Sul', 'Zona Leste', 'Zona Oeste')),
+    CONSTRAINT ck_cl_ponto_apoio_24h CHECK (aberto_24h IN ('S', 'N')),
+    CONSTRAINT ck_cl_ponto_apoio_horario CHECK (aberto_24h = 'S' OR (abre IS NOT NULL AND fecha IS NOT NULL))
+);
+
+-- Contatos de emergência do cidadão (N:1). O nome não se repete para o mesmo cidadão.
+CREATE TABLE cl_contato_emergencia (
+    id_contato   NUMBER(10)   GENERATED ALWAYS AS IDENTITY,
+    id_cidadao   NUMBER(10)   NOT NULL,
+    nome         VARCHAR2(60) NOT NULL,
+    telefone     VARCHAR2(20) NOT NULL,
+    parentesco   VARCHAR2(30),
+    CONSTRAINT pk_cl_contato_emergencia PRIMARY KEY (id_contato),
+    CONSTRAINT fk_cl_contato_cidadao FOREIGN KEY (id_cidadao) REFERENCES cl_cidadao (id_cidadao) ON DELETE CASCADE,
+    CONSTRAINT uk_cl_contato_nome UNIQUE (id_cidadao, nome)
 );
 
 
@@ -487,6 +523,71 @@ FROM cl_cidadao c
 JOIN cl_feira f ON f.rua = 'Avenida Paulista' AND f.dia_semana = 'QUARTA'
 WHERE c.email IN ('bruno.lima@exemplo.com', 'carla.mendes@exemplo.com');
 
+-- Segurança: pontos de apoio (dados de demonstração; o telefone é a central do serviço)
+INSERT INTO cl_ponto_apoio (nome, tipo, bairro, zona, telefone, aberto_24h, abre, fecha, pos_x, pos_y)
+VALUES ('Delegacia de Polícia · Sé', 'DELEGACIA', 'Sé', 'Centro', '197', 'S', NULL, NULL, 1056.4, 1098.2);
+INSERT INTO cl_ponto_apoio (nome, tipo, bairro, zona, telefone, aberto_24h, abre, fecha, pos_x, pos_y)
+VALUES ('Delegacia da Mulher · República', 'DELEGACIA_MULHER', 'República', 'Centro', '180', 'S', NULL, NULL, 1019.8, 1084.6);
+INSERT INTO cl_ponto_apoio (nome, tipo, bairro, zona, telefone, aberto_24h, abre, fecha, pos_x, pos_y)
+VALUES ('Base da Polícia Militar · Santa Cecília', 'POLICIA_MILITAR', 'Santa Cecília', 'Centro', '190', 'S', NULL, NULL, 951.2, 1050.1);
+INSERT INTO cl_ponto_apoio (nome, tipo, bairro, zona, telefone, aberto_24h, abre, fecha, pos_x, pos_y)
+VALUES ('Base da Guarda Civil · Liberdade', 'GUARDA_MUNICIPAL', 'Liberdade', 'Centro', '153', 'S', NULL, NULL, 1058.3, 1176.4);
+INSERT INTO cl_ponto_apoio (nome, tipo, bairro, zona, telefone, aberto_24h, abre, fecha, pos_x, pos_y)
+VALUES ('Pronto-socorro · Bela Vista', 'SAUDE_24H', 'Bela Vista', 'Centro', '192', 'S', NULL, NULL, 982.1, 1148.9);
+INSERT INTO cl_ponto_apoio (nome, tipo, bairro, zona, telefone, aberto_24h, abre, fecha, pos_x, pos_y)
+VALUES ('Centro de Referência da Mulher · Consolação', 'ACOLHIMENTO', 'Consolação', 'Centro', '156', 'N', '08:00', '18:00', 940.6, 1108.3);
+INSERT INTO cl_ponto_apoio (nome, tipo, bairro, zona, telefone, aberto_24h, abre, fecha, pos_x, pos_y)
+VALUES ('Delegacia de Polícia · Santana', 'DELEGACIA', 'Santana', 'Zona Norte', '197', 'S', NULL, NULL, 1070.1, 899.4);
+INSERT INTO cl_ponto_apoio (nome, tipo, bairro, zona, telefone, aberto_24h, abre, fecha, pos_x, pos_y)
+VALUES ('Base da Guarda Civil · Casa Verde', 'GUARDA_MUNICIPAL', 'Casa Verde', 'Zona Norte', '153', 'S', NULL, NULL, 957.4, 909.8);
+INSERT INTO cl_ponto_apoio (nome, tipo, bairro, zona, telefone, aberto_24h, abre, fecha, pos_x, pos_y)
+VALUES ('UPA 24h · Tucuruvi', 'SAUDE_24H', 'Tucuruvi', 'Zona Norte', '192', 'S', NULL, NULL, 1164.9, 804.1);
+INSERT INTO cl_ponto_apoio (nome, tipo, bairro, zona, telefone, aberto_24h, abre, fecha, pos_x, pos_y)
+VALUES ('Base da Polícia Militar · Brasilândia', 'POLICIA_MILITAR', 'Brasilândia', 'Zona Norte', '190', 'S', NULL, NULL, 812.6, 735.2);
+INSERT INTO cl_ponto_apoio (nome, tipo, bairro, zona, telefone, aberto_24h, abre, fecha, pos_x, pos_y)
+VALUES ('Centro de Assistência Social · Freguesia do Ó', 'ACOLHIMENTO', 'Freguesia do Ó', 'Zona Norte', '156', 'N', '08:00', '17:00', 797.3, 827.0);
+INSERT INTO cl_ponto_apoio (nome, tipo, bairro, zona, telefone, aberto_24h, abre, fecha, pos_x, pos_y)
+VALUES ('Delegacia de Polícia · Tatuapé', 'DELEGACIA', 'Tatuapé', 'Zona Leste', '197', 'S', NULL, NULL, 1288.7, 1071.3);
+INSERT INTO cl_ponto_apoio (nome, tipo, bairro, zona, telefone, aberto_24h, abre, fecha, pos_x, pos_y)
+VALUES ('Delegacia da Mulher · Penha', 'DELEGACIA_MULHER', 'Penha', 'Zona Leste', '180', 'N', '09:00', '18:00', 1408.2, 995.0);
+INSERT INTO cl_ponto_apoio (nome, tipo, bairro, zona, telefone, aberto_24h, abre, fecha, pos_x, pos_y)
+VALUES ('Base da Polícia Militar · Itaquera', 'POLICIA_MILITAR', 'Itaquera', 'Zona Leste', '190', 'S', NULL, NULL, 1768.1, 1049.7);
+INSERT INTO cl_ponto_apoio (nome, tipo, bairro, zona, telefone, aberto_24h, abre, fecha, pos_x, pos_y)
+VALUES ('UPA 24h · São Mateus', 'SAUDE_24H', 'São Mateus', 'Zona Leste', '192', 'S', NULL, NULL, 1661.4, 1318.2);
+INSERT INTO cl_ponto_apoio (nome, tipo, bairro, zona, telefone, aberto_24h, abre, fecha, pos_x, pos_y)
+VALUES ('Base da Guarda Civil · Mooca', 'GUARDA_MUNICIPAL', 'Mooca', 'Zona Leste', '153', 'S', NULL, NULL, 1197.6, 1151.6);
+INSERT INTO cl_ponto_apoio (nome, tipo, bairro, zona, telefone, aberto_24h, abre, fecha, pos_x, pos_y)
+VALUES ('Centro de Assistência Social · Guaianases', 'ACOLHIMENTO', 'Guaianases', 'Zona Leste', '156', 'N', '08:00', '17:00', 1966.0, 1121.5);
+INSERT INTO cl_ponto_apoio (nome, tipo, bairro, zona, telefone, aberto_24h, abre, fecha, pos_x, pos_y)
+VALUES ('Delegacia de Polícia · Vila Mariana', 'DELEGACIA', 'Vila Mariana', 'Zona Sul', '197', 'S', NULL, NULL, 1040.6, 1292.7);
+INSERT INTO cl_ponto_apoio (nome, tipo, bairro, zona, telefone, aberto_24h, abre, fecha, pos_x, pos_y)
+VALUES ('Delegacia da Mulher · Santo Amaro', 'DELEGACIA_MULHER', 'Santo Amaro', 'Zona Sul', '180', 'S', NULL, NULL, 775.5, 1505.4);
+INSERT INTO cl_ponto_apoio (nome, tipo, bairro, zona, telefone, aberto_24h, abre, fecha, pos_x, pos_y)
+VALUES ('Base da Polícia Militar · Jabaquara', 'POLICIA_MILITAR', 'Jabaquara', 'Zona Sul', '190', 'S', NULL, NULL, 1000.9, 1541.6);
+INSERT INTO cl_ponto_apoio (nome, tipo, bairro, zona, telefone, aberto_24h, abre, fecha, pos_x, pos_y)
+VALUES ('UPA 24h · Campo Limpo', 'SAUDE_24H', 'Campo Limpo', 'Zona Sul', '192', 'S', NULL, NULL, 522.4, 1486.2);
+INSERT INTO cl_ponto_apoio (nome, tipo, bairro, zona, telefone, aberto_24h, abre, fecha, pos_x, pos_y)
+VALUES ('Base da Guarda Civil · Ipiranga', 'GUARDA_MUNICIPAL', 'Ipiranga', 'Zona Sul', '153', 'S', NULL, NULL, 1175.4, 1301.6);
+INSERT INTO cl_ponto_apoio (nome, tipo, bairro, zona, telefone, aberto_24h, abre, fecha, pos_x, pos_y)
+VALUES ('Centro de Assistência Social · Capão Redondo', 'ACOLHIMENTO', 'Capão Redondo', 'Zona Sul', '156', 'N', '08:00', '17:00', 452.9, 1640.8);
+INSERT INTO cl_ponto_apoio (nome, tipo, bairro, zona, telefone, aberto_24h, abre, fecha, pos_x, pos_y)
+VALUES ('Delegacia de Polícia · Pinheiros', 'DELEGACIA', 'Pinheiros', 'Zona Oeste', '197', 'S', NULL, NULL, 836.8, 1164.3);
+INSERT INTO cl_ponto_apoio (nome, tipo, bairro, zona, telefone, aberto_24h, abre, fecha, pos_x, pos_y)
+VALUES ('Base da Polícia Militar · Lapa', 'POLICIA_MILITAR', 'Lapa', 'Zona Oeste', '190', 'S', NULL, NULL, 760.8, 978.2);
+INSERT INTO cl_ponto_apoio (nome, tipo, bairro, zona, telefone, aberto_24h, abre, fecha, pos_x, pos_y)
+VALUES ('UPA 24h · Butantã', 'SAUDE_24H', 'Butantã', 'Zona Oeste', '192', 'S', NULL, NULL, 665.0, 1189.9);
+INSERT INTO cl_ponto_apoio (nome, tipo, bairro, zona, telefone, aberto_24h, abre, fecha, pos_x, pos_y)
+VALUES ('Base da Guarda Civil · Perdizes', 'GUARDA_MUNICIPAL', 'Perdizes', 'Zona Oeste', '153', 'S', NULL, NULL, 896.8, 1059.8);
+
+INSERT INTO cl_contato_emergencia (id_cidadao, nome, telefone, parentesco)
+SELECT id_cidadao, 'Marina Souza', '(11) 98888-0101', 'Irmã' FROM cl_cidadao WHERE email = 'ana.souza@exemplo.com';
+INSERT INTO cl_contato_emergencia (id_cidadao, nome, telefone, parentesco)
+SELECT id_cidadao, 'Roberto Souza', '(11) 97777-0102', 'Pai' FROM cl_cidadao WHERE email = 'ana.souza@exemplo.com';
+INSERT INTO cl_contato_emergencia (id_cidadao, nome, telefone, parentesco)
+SELECT id_cidadao, 'Lúcia Ferreira', '(11) 96666-0201', 'Mãe' FROM cl_cidadao WHERE email = 'elisa.ferreira@exemplo.com';
+INSERT INTO cl_contato_emergencia (id_cidadao, nome, telefone, parentesco)
+SELECT id_cidadao, 'Gabriel Rocha', '(11) 95555-0301', 'Irmão' FROM cl_cidadao WHERE email = 'felipe.rocha@exemplo.com';
+
 COMMIT;
 
 
@@ -498,4 +599,6 @@ UNION ALL SELECT 'CL_ROTA', COUNT(*) FROM cl_rota
 UNION ALL SELECT 'CL_ROTA_VIA', COUNT(*) FROM cl_rota_via
 UNION ALL SELECT 'CL_ENDERECO', COUNT(*) FROM cl_endereco
 UNION ALL SELECT 'CL_FEIRA', COUNT(*) FROM cl_feira
-UNION ALL SELECT 'CL_CIDADAO_FEIRA', COUNT(*) FROM cl_cidadao_feira;
+UNION ALL SELECT 'CL_CIDADAO_FEIRA', COUNT(*) FROM cl_cidadao_feira
+UNION ALL SELECT 'CL_PONTO_APOIO', COUNT(*) FROM cl_ponto_apoio
+UNION ALL SELECT 'CL_CONTATO_EMERGENCIA', COUNT(*) FROM cl_contato_emergencia;

@@ -247,6 +247,9 @@ const DESENHOS = {
       <path d="M12 7.5V12l3 2" />
     </>
   ),
+  TELEFONE: (
+    <path d="M5 4h3.5l1.5 4.5-2.2 1.4a11 11 0 0 0 6.3 6.3l1.4-2.2L20 15.5V19a1.5 1.5 0 0 1-1.6 1.5A16 16 0 0 1 3.5 5.6 1.5 1.5 0 0 1 5 4z" />
+  ),
 };
 
 /** Ícone decorativo. O texto ao lado é quem dá o significado para leitores de tela. */
