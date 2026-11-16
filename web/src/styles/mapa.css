@@ -357,6 +357,120 @@
   transform: translate(-50%, -100%);
 }
 
+/* ---------------------------------------------- Pinos dos pontos de apoio (Segurança) */
+
+.apoio3d {
+  --cor-tipo: var(--pilar-seguranca);
+  position: absolute;
+  width: 0;
+  height: 0;
+  transform-style: preserve-3d;
+}
+
+.apoio3d--DELEGACIA_MULHER { --cor-tipo: var(--pilar-educacao); }
+.apoio3d--POLICIA_MILITAR { --cor-tipo: var(--asfalto-2); }
+.apoio3d--GUARDA_MUNICIPAL { --cor-tipo: var(--pilar-lazer); }
+.apoio3d--SAUDE_24H { --cor-tipo: var(--risco-CRITICO); }
+.apoio3d--ACOLHIMENTO { --cor-tipo: var(--pilar-habitacao); }
+
+/* Marca no chão, embaixo da ponta do pino */
+.apoio3d__base {
+  position: absolute;
+  left: -7px;
+  top: -3.5px;
+  width: 14px;
+  height: 7px;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgb(31 42 36 / 0.45), transparent);
+}
+
+.apoio3d__ergue {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-style: preserve-3d;
+  transform-origin: 0 0;
+  animation: sinal-ergue 560ms cubic-bezier(0.34, 1.5, 0.64, 1) both;
+  animation-delay: calc(400ms + var(--i) * 25ms);
+}
+
+/* Gota: a cabeça redonda com o ícone e a ponta encostada no chão */
+.apoio3d__pino {
+  position: absolute;
+  left: -15px;
+  top: -42px;
+  display: grid;
+  justify-items: center;
+  width: 30px;
+  height: 42px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #fff;
+  cursor: pointer;
+  pointer-events: auto;
+  transform-origin: 50% 100%;
+  transition: transform 0.3s cubic-bezier(0.34, 1.5, 0.64, 1), opacity 0.25s ease;
+  outline: none;
+}
+
+span.apoio3d__pino {
+  cursor: default;
+}
+
+.apoio3d__cabeca {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--cor-tipo);
+  box-shadow: 0 0 0 2.5px #fff, 0 6px 12px -4px rgb(31 42 36 / 0.6);
+}
+
+.apoio3d__ponta {
+  width: 0;
+  height: 0;
+  margin-top: -1px;
+  border-left: 7px solid transparent;
+  border-right: 7px solid transparent;
+  border-top: 12px solid #fff;
+}
+
+.apoio3d--fechado .apoio3d__cabeca {
+  filter: saturate(0.35) brightness(1.08);
+}
+
+.apoio3d__pino:hover,
+.apoio3d__pino:focus-visible,
+.apoio3d--ativo .apoio3d__pino {
+  transform: scale(1.22);
+}
+
+.apoio3d__pino:focus-visible .apoio3d__cabeca {
+  box-shadow: 0 0 0 2.5px #fff, 0 0 0 5px var(--placa);
+}
+
+.mapa3d--com-selecao .apoio3d:not(.apoio3d--ativo) .apoio3d__pino {
+  opacity: 0.55;
+}
+
+.apoio3d__balao {
+  top: -50px;
+}
+
+.apoio3d__balao span {
+  color: #9fe3d9;
+}
+
+.apoio3d:hover .apoio3d__balao,
+.apoio3d--ativo .apoio3d__balao,
+.apoio3d__pino:focus-visible + .apoio3d__balao {
+  opacity: 1;
+  visibility: visible;
+  transform: translate(-50%, -100%);
+}
+
 /* ---------------------------------------------------------- Controles e legenda */
 
 .mapa3d__controles {
@@ -475,6 +589,14 @@
   height: 4px;
   border-radius: 2px;
   background: var(--pilar-lazer);
+}
+
+.mapa3d__amostra-apoio {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--pilar-seguranca);
+  box-shadow: 0 0 0 2px #fff, 0 0 0 2.5px var(--linha-forte);
 }
 
 .mapa3d__aviso {

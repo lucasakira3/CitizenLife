@@ -11,7 +11,7 @@
 //
 // Plano do mapa: x cresce para o leste e y para o sul, em unidades de 25 m.
 
-import { chaveVia, tracadoDaVia, zonaNoPonto } from "./mapaCidade.js";
+import { chaveVia, comprimento, pontoNaFracao, tracadoDaVia, zonaNoPonto } from "./mapaCidade.js";
 
 // Velocidade de referência por classe de via (km/h), para veículos. A ordem segue CLASSES do
 // gerador: expressa, arterial, principal, secundária, terciária, local, pedestre, acesso.
@@ -313,6 +313,18 @@ export function trechosComRisco(rota, alertas, nomesPorVia) {
   return rota.segmentos
     .filter((segmento) => pior.has(segmento.nome))
     .map((segmento) => ({ pontos: segmento.pontos, nivel: pior.get(segmento.nome) }));
+}
+
+/**
+ * Onde a rota passa pela via de uma ocorrência: o meio do trecho mais comprido da rota naquela via.
+ * Serve para procurar ajuda perto do ponto exato do caminho. Devolve null se a rota não passa pela via.
+ */
+export function pontoDaViaNaRota(rota, via, nomesPorVia) {
+  const nomes = nomesPorVia.get(via.id) ?? new Set();
+  const trechos = rota.segmentos.filter((segmento) => nomes.has(segmento.nome));
+  if (!trechos.length) return null;
+  const maior = trechos.reduce((a, b) => (comprimento(b.pontos) > comprimento(a.pontos) ? b : a));
+  return pontoNaFracao(maior.pontos, 0.5);
 }
 
 // ------------------------------------------------- vias do banco na rota

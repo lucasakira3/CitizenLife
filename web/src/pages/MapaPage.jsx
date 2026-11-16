@@ -46,6 +46,40 @@ export default function MapaPage() {
 
   const ativas = useCarregar(() => api.buscar(`/ocorrencias${consulta({ modal })}`), [modal]);
 
+  // Camada do pilar Segurança: os pontos de apoio só são buscados quando o cidadão liga o botão
+  const [verApoio, setVerApoio] = useState(() => parametroDaUrl("apoio") === "1");
+  const [pontoAtivo, setPontoAtivo] = useState(null);
+  const [pontos, setPontos] = useState(null);
+  const [erroPontos, setErroPontos] = useState(null);
+  useEffect(() => {
+    if (!verApoio || pontos) return;
+    api
+      .buscar("/pontos-apoio")
+      .then(setPontos)
+      .catch(setErroPontos);
+  }, [verApoio, pontos]);
+  const pontosNoMapa = verApoio && pontos ? pontos : null;
+  const pontoEscolhido = pontosNoMapa?.find((ponto) => ponto.id === pontoAtivo) ?? null;
+
+  function alternarApoio() {
+    setVerApoio((ligado) => !ligado);
+    setPontoAtivo(null);
+    setErroPontos(null);
+  }
+
+  const escolherPonto = useCallback(
+    (id) => {
+      setPontoAtivo(id);
+      if (id) {
+        setSelecionada(null);
+        if (celular) setPainelAberto(true);
+        const ponto = pontos?.find((item) => item.id === id);
+        if (ponto) refMapa.current?.focarPonto(ponto.local.x, ponto.local.y);
+      }
+    },
+    [celular, pontos],
+  );
+
   // Vindo de um alerta: assim que o mapa e as placas carregam, a câmera voa até a ocorrência.
   useEffect(() => {
     if (!focoInicial || !ativas.dados) return undefined;
@@ -87,6 +121,7 @@ export default function MapaPage() {
   const selecionar = useCallback(
     (id) => {
       setSelecionada(id);
+      if (id) setPontoAtivo(null);
       if (id && celular) setPainelAberto(true);
     },
     [celular],
@@ -123,6 +158,9 @@ export default function MapaPage() {
           selecionada={selecionada}
           aoSelecionar={selecionar}
           folga={folga}
+          pontosApoio={pontosNoMapa}
+          pontoAtivo={pontoAtivo}
+          aoEscolherPonto={escolherPonto}
         />
       )}
 
@@ -148,6 +186,16 @@ export default function MapaPage() {
             A cidade calculada para quem {MODAL_FRASE[modal]}
           </h1>
           <SeletorModal valor={modal} aoMudar={setModal} legenda="Calcular o risco para" />
+          <button
+            type="button"
+            className="mapa-camada"
+            aria-pressed={verApoio}
+            onClick={alternarApoio}
+          >
+            <Icone nome="SEGURANCA" tamanho={16} />
+            {verApoio ? "Esconder pontos de apoio" : "Mostrar pontos de apoio"}
+          </button>
+          {erroPontos && <p className="mapa-camada__erro">{erroPontos.message}</p>}
           {ativas.dados && (
             <p className="mapa-painel__resumo" aria-live="polite">
               <strong>
@@ -159,7 +207,9 @@ export default function MapaPage() {
         </header>
 
         <div id="mapa-painel-corpo" className="mapa-painel__corpo" hidden={celular && !painelAberto}>
-          {escolhida ? (
+          {pontoEscolhido ? (
+            <DetalhePonto key={pontoEscolhido.id} ponto={pontoEscolhido} rotulo={rotulo} aoVoltar={() => setPontoAtivo(null)} />
+          ) : escolhida ? (
             <DetalheNoMapa
               key={escolhida.id}
               ocorrencia={escolhida}
@@ -258,6 +308,42 @@ function DetalheNoMapa({ ocorrencia, rotulo, aoVoltar }) {
       </div>
       <p className="mapa-detalhe__quando">
         Registrada {tempoRelativo(ocorrencia.dataRegistro)}.
+      </p>
+    </article>
+  );
+}
+
+/** Ponto de apoio escolhido no mapa (camada do pilar Segurança). */
+function DetalhePonto({ ponto, rotulo, aoVoltar }) {
+  const horario = ponto.aberto24h ? "24 horas" : `${ponto.abre} às ${ponto.fecha}`;
+  return (
+    <article className="mapa-detalhe" aria-labelledby="mapa-ponto-titulo">
+      <button type="button" className="mapa-detalhe__voltar" onClick={aoVoltar}>
+        <Icone nome="VOLTAR" tamanho={16} />
+        Todas as ocorrências
+      </button>
+      <p className="mapa-detalhe__tipo">
+        <Icone nome="SEGURANCA" tamanho={16} />
+        {rotulo("tiposPontoApoio", ponto.tipo)}
+      </p>
+      <h2 id="mapa-ponto-titulo" className="mapa-detalhe__titulo">
+        {ponto.nome}
+      </h2>
+      <p className="mapa-detalhe__risco">
+        <span className={`ponto-apoio__estado ${ponto.abertoAgora ? "ponto-apoio__estado--aberto" : ""}`}>
+          {ponto.abertoAgora ? "Aberto agora" : "Fechado agora"}
+        </span>{" "}
+        {horario}
+      </p>
+      <p className="mapa-detalhe__descricao">
+        {ponto.bairro} · {ponto.zona}
+      </p>
+      <a className="botao botao--primario botao--pequeno" href={`tel:${ponto.telefone}`}>
+        <Icone nome="TELEFONE" tamanho={16} />
+        Ligar {ponto.telefone}
+      </a>
+      <p className="mapa-detalhe__quando">
+        <a href="#/seguranca">Ver todos os pontos de apoio</a>
       </p>
     </article>
   );

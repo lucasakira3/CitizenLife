@@ -151,6 +151,11 @@ public class Servidor implements HttpHandler {
                                 "true".equals(parametros.get("abertoAgora")))
                         .stream().map(p -> pontoApoio(p, agora)).toList();
             }
+            case "GET /api/pontos-apoio/proximo" -> {
+                SegurancaService.PontoProximo proximo = seguranca.maisProximo(
+                        decimal(parametros, "x"), decimal(parametros, "y"), parametros.get("tipoOcorrencia"));
+                yield proximo == null ? null : pontoProximo(proximo, seguranca.agora());
+            }
             case "GET /api/cidadaos/{id}/pontos-proximos" -> {
                 SegurancaService.Proximos proximos = seguranca.proximosDeCasa(ids.get(0), ator);
                 if (proximos == null) {
@@ -159,11 +164,7 @@ public class Servidor implements HttpHandler {
                 LocalTime agora = seguranca.agora();
                 Map<String, Object> mapa = new LinkedHashMap<>();
                 mapa.put("referencia", endereco(proximos.referencia()));
-                mapa.put("pontos", proximos.pontos().stream().map(item -> {
-                    Map<String, Object> ponto = pontoApoio(item.ponto(), agora);
-                    ponto.put("distanciaMetros", item.distanciaMetros());
-                    return ponto;
-                }).toList());
+                mapa.put("pontos", proximos.pontos().stream().map(item -> pontoProximo(item, agora)).toList());
                 yield mapa;
             }
             case "GET /api/cidadaos/{id}/contatos" ->
@@ -280,6 +281,13 @@ public class Servidor implements HttpHandler {
         return mapa;
     }
 
+    /** O ponto de apoio com a distância até o local de referência. */
+    private Map<String, Object> pontoProximo(SegurancaService.PontoProximo item, LocalTime agora) {
+        Map<String, Object> mapa = pontoApoio(item.ponto(), agora);
+        mapa.put("distanciaMetros", item.distanciaMetros());
+        return mapa;
+    }
+
     private Map<String, Object> contato(ContatoEmergencia contato) {
         Map<String, Object> mapa = new LinkedHashMap<>();
         mapa.put("id", contato.getId());
@@ -354,6 +362,15 @@ public class Servidor implements HttpHandler {
     /** Número do JSON; -1 quando o campo falta, para a service acusar o erro. */
     private double numero(Map<String, Object> json, String campo) {
         return json.get(campo) instanceof Number numero ? numero.doubleValue() : -1;
+    }
+
+    /** Número de um parâmetro da URL (?x=1044.3); NaN quando falta ou não é número, para a service acusar o erro. */
+    private double decimal(Map<String, String> parametros, String nome) {
+        try {
+            return Double.parseDouble(parametros.getOrDefault(nome, ""));
+        } catch (NumberFormatException e) {
+            return Double.NaN;
+        }
     }
 
     private long longa(Map<String, Object> json, String campo) {

@@ -80,6 +80,8 @@ Na **Segurança**, o cidadão:
 - 📞 **liga para a emergência** com um toque (190, 192, 193, 153 e 180), sempre no topo da página;
 - 🛡️ **encontra onde pedir ajuda**: delegacias, Delegacia da Mulher, bases da PM e da Guarda Civil, saúde 24h e centros de acolhimento, com filtro por zona e por tipo e o selo **"Aberto agora"** (calculado no Java pelo horário de São Paulo);
 - 🏠 **vê os 3 pontos mais perto de casa**, medidos a partir do endereço salvo na Mobilidade;
+- 🗺️ **liga os pontos de apoio no mapa de riscos**: cada um vira um pino 3D na cor do tipo, com o detalhe e o botão de ligar;
+- 🚔 **recebe ajuda sugerida na rota**: quando o caminho passa por uma ocorrência de **insegurança**, o sistema indica a delegacia, base da PM ou da Guarda Civil mais perto daquele trecho (de preferência aberta agora) e marca no mapa;
 - 👥 **guarda contatos de emergência** no perfil (até 5), com link para ligar.
 
 ---
@@ -124,8 +126,8 @@ O menu é o mesmo em todas as páginas: os seis pilares, cada um com a sua cor. 
 |---|---|---|
 | **Início** | todos | Os seis pilares em cards. Mobilidade, Alimentação e Segurança estão disponíveis; os outros, em breve |
 | **Mobilidade** | todos | As duas consultas do pilar e as faixas de risco |
-| **Planejar rota** | todos (salvar: com conta) | Saída e destino com busca de ruas e bairros (ou clique no mapa), atalhos para os endereços salvos, rota mais rápida e mais segura com tempo, distância e ocorrências no caminho |
-| **Mapa de riscos** | todos | São Paulo em tela cheia com dados do OpenStreetMap, placas 3D das ocorrências, câmera livre (arrastar, zoom, girar, inclinar, 2D) e filtro por zona |
+| **Planejar rota** | todos (salvar: com conta) | Saída e destino com busca de ruas e bairros (ou clique no mapa), atalhos para os endereços salvos, rota mais rápida e mais segura com tempo, distância e ocorrências no caminho; perto de uma ocorrência de insegurança, o ponto policial mais próximo do trecho |
+| **Mapa de riscos** | todos | São Paulo em tela cheia com dados do OpenStreetMap, placas 3D das ocorrências, câmera livre (arrastar, zoom, girar, inclinar, 2D) e filtro por zona; botão para mostrar os pontos de apoio (Segurança) como pinos 3D |
 | **Perfil** | com conta | **Resumo** (alertas, rotas e endereços), **Meus dados** (CRUD da conta) e, em **Mobilidade**, as abas *Minhas rotas* (alertas e CRUD das rotas), *Como me locomovo* e *Meus endereços* (CRUD), em **Segurança**, a aba *Contatos de emergência* (CRUD) e, em **Alimentação**, a aba *Minhas feiras* (favoritar e remover). Os outros pilares mostram as abas que vão ter |
 | **Alimentação** | todos (feira de hoje: com conta) | Feiras livres disponíveis e a feira favorita de hoje |
 | **Segurança** | todos (perto de casa: com conta) | Telefones de emergência, os 3 pontos de apoio mais perto de casa e a lista com filtros por zona, tipo e "aberto agora" |
@@ -367,6 +369,7 @@ Todas as respostas são JSON. Operações que exigem login recebem o id do cidad
 | DELETE | `/api/cidadaos/{id}/feiras/{idFeira}` | Remover das favoritas | o próprio cidadão |
 | GET | `/api/cidadaos/{id}/feira-hoje` | A feira favorita de hoje (204 se não houver) | o próprio cidadão |
 | GET | `/api/pontos-apoio?zona=Centro&tipo=DELEGACIA&abertoAgora=true` | Pontos de apoio com o "aberto agora" calculado (filtros opcionais) | todos |
+| GET | `/api/pontos-apoio/proximo?x=1044.3&y=1109.2&tipoOcorrencia=INSEGURANCA` | O ponto de apoio mais perto de um local do mapa, de preferência aberto agora; com `INSEGURANCA`, só delegacias, PM e Guarda Civil | todos |
 | GET | `/api/cidadaos/{id}/pontos-proximos` | Os 3 pontos de apoio mais perto da casa (204 sem endereço salvo) | o próprio cidadão |
 | GET, POST | `/api/cidadaos/{id}/contatos` | Listar e salvar contatos de emergência: `{nome, telefone, parentesco}` | o próprio cidadão |
 | PUT, DELETE | `/api/cidadaos/{id}/contatos/{idContato}` | Editar e excluir um contato | o próprio cidadão |
@@ -452,7 +455,7 @@ Os diagramas por camada mostram só o que é público e os atributos do modelo (
 ## 🔭 Próximos passos
 
 - **Os outros pilares**, cada um com a sua primeira consulta e as suas abas no perfil: cursos gratuitos, programas de moradia e programação gratuita.
-- **Segurança:** mostrar os pontos de apoio no mapa 3D e sugerir o mais próximo quando a rota passa por uma ocorrência de insegurança.
+- **Segurança:** pontos de apoio com dados abertos da Prefeitura e da SSP (endereço e horário reais) e rota a pé até o ponto sugerido.
 - **Mobilidade:** relatos de ocorrência feitos pelos próprios cidadãos e confirmados pelos órgãos da cidade, cruzados com sensores de nível de água, câmeras e dados de trânsito e clima.
 
 ---

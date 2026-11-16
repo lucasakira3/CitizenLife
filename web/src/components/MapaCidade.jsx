@@ -23,6 +23,7 @@ export { zonaDaRegiao };
  * - Cada ocorrência é uma placa de advertência 3D (HTML + CSS 3D) em cima da via
  *   atingida, na cor do risco para o modal escolhido. As vias atingidas acendem.
  * - Na página de rotas, a rota calculada aparece em azul-céu, com os marcadores de saída (A) e destino (B).
+ * - Pontos de apoio (pilar Segurança) aparecem como pinos com o ícone do tipo, quando a página pede.
  *
  * modo "tela": página Mapa, câmera livre. modo "previa": quadro pequeno, câmera parada.
  */
@@ -124,6 +125,9 @@ export default function MapaCidade({
   aoClicarNoChao,
   rotuloRegiao,
   folga,
+  pontosApoio = null,
+  pontoAtivo = null,
+  aoEscolherPonto,
   ref,
 }) {
   const { rotulo } = useApp();
@@ -216,12 +220,15 @@ export default function MapaCidade({
       })),
       zonaSelecionada,
       riscoZona,
-      obstaculos: sinais.map((sinal) => [sinal.x, sinal.y]),
+      obstaculos: [
+        ...sinais.map((sinal) => [sinal.x, sinal.y]),
+        ...(pontosApoio ?? []).map((ponto) => [ponto.local.x, ponto.local.y]),
+      ],
       rota,
       marcadores,
     };
     aplicar();
-  }, [afetadas, sinais, zonaSelecionada, riscoZona, selecionada, rota, marcadores, aplicar]);
+  }, [afetadas, sinais, pontosApoio, zonaSelecionada, riscoZona, selecionada, rota, marcadores, aplicar]);
 
   const verZona = useCallback(
     (chave) => {
@@ -240,6 +247,10 @@ export default function MapaCidade({
         const sinal = sinais.find((item) => item.ocorrencia.id === id);
         if (sinal) focar(sinal.x, sinal.y, 6);
         return Boolean(sinal);
+      },
+      /** Voa até um local do mapa (um ponto de apoio, por exemplo). */
+      focarPonto(x, y, zoom = 6) {
+        focar(x, y, zoom);
       },
       verZona,
       verCidade: () => verCidade(),
@@ -273,7 +284,7 @@ export default function MapaCidade({
 
   // Clique no chão: na prévia filtra pela zona; na tela cheia fecha a ocorrência aberta
   function aoClicarNoMapa(evento) {
-    if (!dados || evento.target.closest(".sinal3d")) return;
+    if (!dados || evento.target.closest(".sinal3d, .apoio3d")) return;
     if (aoClicarNoChao) {
       const ponto = camera.pontoNaTela(evento.clientX, evento.clientY);
       aoClicarNoChao(ponto.x, ponto.y);
@@ -281,6 +292,7 @@ export default function MapaCidade({
     }
     if (tela) {
       if (selecionada) aoSelecionar?.(null);
+      if (pontoAtivo) aoEscolherPonto?.(null);
       return;
     }
     if (!aoSelecionarZona) return;
@@ -311,7 +323,7 @@ export default function MapaCidade({
     `mapa3d--${modo}`,
     pronto ? "mapa3d--pronto" : "",
     vista.em3d ? "" : "mapa3d--plano",
-    selecionada ? "mapa3d--com-selecao" : "",
+    selecionada || pontoAtivo ? "mapa3d--com-selecao" : "",
   ].join(" ");
 
   return (
@@ -344,6 +356,16 @@ export default function MapaCidade({
                 ativo={sinal.ocorrencia.id === selecionada}
                 rotulo={rotulo}
                 aoEscolher={escolherSinal}
+              />
+            ))}
+            {(pontosApoio ?? []).map((ponto, indice) => (
+              <PinoApoio
+                key={`apoio-${ponto.id}`}
+                ponto={ponto}
+                indice={indice}
+                ativo={ponto.id === pontoAtivo}
+                rotulo={rotulo}
+                aoEscolher={aoEscolherPonto}
               />
             ))}
           </div>
@@ -429,6 +451,12 @@ export default function MapaCidade({
               Sua rota
             </li>
           )}
+          {pontosApoio?.length > 0 && (
+            <li>
+              <span className="mapa3d__amostra-apoio" aria-hidden="true" />
+              Ponto de apoio
+            </li>
+          )}
         </ul>
         {foraDoMapa > 0 && (
           <p className="mapa3d__aviso">
@@ -497,6 +525,67 @@ const SinalMapa = memo(function SinalMapa({ sinal, indice, tela, ativo, rotulo, 
             <strong>{ocorrencia.titulo}</strong>
             <span>
               Risco {nivel.toLowerCase()} · {formatarNumero(risco.valor, 1)}
+            </span>
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+});
+
+// ------------------------------------------------- pino de ponto de apoio (Segurança)
+
+const ICONE_APOIO = {
+  DELEGACIA: "ESCUDO",
+  DELEGACIA_MULHER: "PESSOA",
+  POLICIA_MILITAR: "ESCUDO",
+  GUARDA_MUNICIPAL: "ESCUDO",
+  SAUDE_24H: "MAIS",
+  ACOLHIMENTO: "HABITACAO",
+};
+
+const PinoApoio = memo(function PinoApoio({ ponto, indice, ativo, rotulo, aoEscolher }) {
+  const tipo = rotulo("tiposPontoApoio", ponto.tipo);
+  const estado = ponto.abertoAgora ? "aberto agora" : "fechado agora";
+  const descricao = `${ponto.nome}. ${tipo}, ${estado}.`;
+  const conteudo = (
+    <>
+      <span className="apoio3d__cabeca">
+        <Icone nome={ICONE_APOIO[ponto.tipo] ?? "ESCUDO"} tamanho={15} />
+      </span>
+      <span className="apoio3d__ponta" />
+    </>
+  );
+
+  return (
+    <div
+      className={`apoio3d apoio3d--${ponto.tipo} ${ativo ? "apoio3d--ativo" : ""} ${ponto.abertoAgora ? "" : "apoio3d--fechado"}`}
+      style={{ left: ponto.local.x, top: ponto.local.y, "--i": indice }}
+    >
+      <div className="sinal3d__chao">
+        <span className="apoio3d__base" />
+      </div>
+      <div className="sinal3d__painel">
+        <div className="apoio3d__ergue">
+          {aoEscolher ? (
+            <button
+              type="button"
+              className="apoio3d__pino"
+              aria-label={descricao}
+              aria-pressed={ativo}
+              onClick={() => aoEscolher(ponto.id)}
+            >
+              {conteudo}
+            </button>
+          ) : (
+            <span className="apoio3d__pino" role="img" aria-label={descricao}>
+              {conteudo}
+            </span>
+          )}
+          <span className="sinal3d__balao apoio3d__balao" aria-hidden="true">
+            <strong>{ponto.nome}</strong>
+            <span>
+              {tipo} · {estado}
             </span>
           </span>
         </div>

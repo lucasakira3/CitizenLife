@@ -20,13 +20,17 @@ import java.util.Set;
 /**
  * Pilar Segurança: onde pedir ajuda (pontos de apoio) e os contatos de emergência do cidadão.
  * Regras: filtros por zona e tipo, "aberto agora" pelo horário de São Paulo, pontos mais próximos
- * do endereço de casa e até {@value #MAXIMO_CONTATOS} contatos por pessoa.
+ * do endereço de casa, o ponto mais perto de um local do mapa (usado quando a rota passa por uma
+ * ocorrência de insegurança) e até {@value #MAXIMO_CONTATOS} contatos por pessoa.
  */
 public class SegurancaService {
 
     public static final int MAXIMO_CONTATOS = 5;
     public static final int QUANTIDADE_PROXIMOS = 3;
     private static final ZoneId SAO_PAULO = ZoneId.of("America/Sao_Paulo");
+    /** Para insegurança (furto, trecho escuro), a ajuda certa é a polícia ou a guarda, não um pronto-socorro. */
+    public static final Set<String> TIPOS_POLICIAIS = Set.of(
+            "DELEGACIA", "DELEGACIA_MULHER", "POLICIA_MILITAR", "GUARDA_MUNICIPAL");
     private static final Set<String> ZONAS = Set.of("Centro", "Zona Norte", "Zona Sul", "Zona Leste", "Zona Oeste");
 
     /** Um ponto de apoio com a distância até o endereço de referência. */
@@ -79,6 +83,26 @@ public class SegurancaService {
                 .limit(QUANTIDADE_PROXIMOS)
                 .toList();
         return new Proximos(referencia, pontos);
+    }
+
+    /**
+     * O ponto de apoio mais perto de um local do mapa. Prefere um que esteja aberto agora:
+     * só sugere um fechado quando nenhum está aberto. Com uma ocorrência de insegurança, só
+     * entram os pontos policiais ({@link #TIPOS_POLICIAIS}). Devolve null se não houver nenhum.
+     */
+    public PontoProximo maisProximo(double x, double y, String tipoOcorrencia) {
+        ValidacaoException erros = new ValidacaoException();
+        erros.exigir(Double.isFinite(x) && x >= 0, "x", "Informe a posição x do local no mapa.");
+        erros.exigir(Double.isFinite(y) && y >= 0, "y", "Informe a posição y do local no mapa.");
+        erros.lancarSeHouverErros();
+        LocalTime agora = agora();
+        boolean inseguranca = "INSEGURANCA".equals(tipoOcorrencia);
+        return pontoDao.listar().stream()
+                .filter(ponto -> !inseguranca || TIPOS_POLICIAIS.contains(ponto.getTipo()))
+                .map(ponto -> new PontoProximo(ponto, ponto.distanciaMetrosAte(x, y)))
+                .min(Comparator.comparing((PontoProximo item) -> !item.ponto().estaAberto(agora))
+                        .thenComparingInt(PontoProximo::distanciaMetros))
+                .orElse(null);
     }
 
     public LocalTime agora() {

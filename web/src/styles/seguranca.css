@@ -232,3 +232,86 @@
 .contato-form .perfil-subtitulo {
   margin-top: 0;
 }
+
+/* Mapa de riscos: botão da camada de pontos de apoio */
+.mapa-camada {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 36px;
+  margin: 0.55rem 0 0.2rem;
+  padding: 0.25rem 0.8rem;
+  border: 1.5px solid var(--linha-forte);
+  border-radius: 999px;
+  background: var(--papel);
+  color: var(--texto);
+  font-family: var(--fonte-titulo);
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.mapa-camada:hover {
+  border-color: var(--asfalto);
+}
+
+.mapa-camada[aria-pressed="true"] {
+  border-color: var(--pilar-seguranca);
+  background: var(--pilar-seguranca);
+  color: #fff;
+}
+
+.mapa-camada__erro {
+  margin: 0.2rem 0 0;
+  font-size: 0.85rem;
+  color: var(--erro);
+}
+
+/* Planejar rota: ponto de apoio sugerido perto de uma ocorrência de insegurança */
+.apoio-sugerido {
+  display: grid;
+  gap: 0.3rem;
+  margin-top: 0.55rem;
+  padding: 0.65rem 0.75rem;
+  border-left: 3px solid var(--pilar-seguranca);
+  border-radius: 0 var(--raio) var(--raio) 0;
+  background: color-mix(in srgb, var(--pilar-seguranca) 9%, var(--papel));
+}
+
+.apoio-sugerido__rotulo {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--pilar-seguranca);
+}
+
+.apoio-sugerido__nome {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--texto);
+  font-family: var(--fonte-titulo);
+  font-weight: 800;
+  font-size: 0.95rem;
+  text-align: left;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--pilar-seguranca) 50%, transparent);
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.apoio-sugerido__meta {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--texto-suave);
+}
+
+.apoio-sugerido .botao {
+  justify-self: start;
+}

@@ -41,8 +41,10 @@ classDiagram
     class SegurancaService {
         +int MAXIMO_CONTATOS$
         +int QUANTIDADE_PROXIMOS$
+        +Set~String~ TIPOS_POLICIAIS$
         +listarPontos(zona, tipo, soAbertos) List~PontoApoio~
         +proximosDeCasa(idCidadao, idAtor) Proximos
+        +maisProximo(x, y, tipoOcorrencia) PontoProximo
         +agora() LocalTime
         +listarContatos(idCidadao, idAtor) List~ContatoEmergencia~
         +criarContato(idCidadao, ContatoEmergencia, idAtor) ContatoEmergencia

@@ -13,7 +13,7 @@ import { navegar } from "../hooks/useRota.js";
 import { useTitulo } from "../hooks/useTitulo.js";
 import { api, consulta } from "../services/api.js";
 import { avisarNaProximaPagina } from "../services/aviso.js";
-import { formatarMinutos, formatarNumero } from "../utils/formato.js";
+import { formatarDistancia, formatarMinutos, formatarNumero } from "../utils/formato.js";
 import { carregarMapa } from "../utils/mapaCidade.js";
 import {
   calcularRota,
@@ -23,6 +23,7 @@ import {
   minutosPara,
   nomesDasVias,
   penalidadesDeRisco,
+  pontoDaViaNaRota,
   prepararBusca,
   trechosComRisco,
   viasNaRota,
@@ -217,6 +218,47 @@ export default function PlanejarRotaPage() {
     [escolhida],
   );
 
+  // Segurança: para cada ocorrência de insegurança no caminho, o Java sugere o ponto policial
+  // (delegacia, PM ou Guarda Civil) mais perto do trecho da rota naquela via, de preferência aberto agora.
+  const [apoios, setApoios] = useState({}); // { idOcorrencia: pontoDeApoio }
+  const [pontoAtivo, setPontoAtivo] = useState(null);
+  useEffect(() => {
+    setApoios({});
+    setPontoAtivo(null);
+    if (!escolhida || !base) return undefined;
+    const inseguras = escolhida.alertas.filter((alerta) => alerta.tipo === "INSEGURANCA");
+    if (!inseguras.length) return undefined;
+    let ativo = true;
+    Promise.all(
+      inseguras.map(async (alerta) => {
+        const local = pontoDaViaNaRota(escolhida.rota, alerta.via, base.nomesPorVia);
+        if (!local) return null;
+        const ponto = await api.buscar(`/pontos-apoio/proximo${consulta({ x: local.x.toFixed(2), y: local.y.toFixed(2), tipoOcorrencia: alerta.tipo })}`);
+        return ponto ? [alerta.id, ponto] : null;
+      }),
+    )
+      .then((pares) => ativo && setApoios(Object.fromEntries(pares.filter(Boolean))))
+      .catch(() => ativo && setApoios({}));
+    return () => {
+      ativo = false;
+    };
+  }, [escolhida, base]);
+
+  // Um mesmo ponto pode ser sugerido para duas ocorrências: no mapa ele aparece uma vez só
+  const pontosSugeridos = useMemo(() => {
+    const unicos = new Map(Object.values(apoios).map((ponto) => [ponto.id, ponto]));
+    return unicos.size ? [...unicos.values()] : null;
+  }, [apoios]);
+
+  const verPontoNoMapa = useCallback(
+    (id) => {
+      setPontoAtivo(id);
+      const ponto = pontosSugeridos?.find((item) => item.id === id);
+      if (ponto) refMapa.current?.focarPonto(ponto.local.x, ponto.local.y);
+    },
+    [pontosSugeridos],
+  );
+
   const aoClicarNoChao = useCallback(
     (x, y) => {
       if (!marcando || !base) return;
@@ -253,6 +295,9 @@ export default function PlanejarRotaPage() {
         aoClicarNoChao={marcando ? aoClicarNoChao : undefined}
         rotuloRegiao="Mapa de São Paulo com a rota calculada. Arraste para mover e use a roda ou a pinça para aproximar."
         folga={folga}
+        pontosApoio={pontosSugeridos}
+        pontoAtivo={pontoAtivo}
+        aoEscolherPonto={verPontoNoMapa}
       />
       {marcando && (
         <p className="rota-tela__marcando" role="status">
@@ -370,6 +415,8 @@ export default function PlanejarRotaPage() {
                 aoEscolher={setCriterio}
                 modal={modal}
                 rotulo={rotulo}
+                apoios={apoios}
+                aoVerPonto={verPontoNoMapa}
               />
             )
           )}
@@ -402,7 +449,31 @@ export default function PlanejarRotaPage() {
 
 // ---------------------------------------------------------------- resultado
 
-function Resultado({ resultado, criterio, aoEscolher, modal, rotulo }) {
+/** Ponto de apoio mais perto de uma ocorrência de insegurança no caminho (pilar Segurança). */
+function ApoioSugerido({ ponto, rotulo, aoVer }) {
+  const horario = ponto.aberto24h ? "24 horas" : `${ponto.abre} às ${ponto.fecha}`;
+  return (
+    <div className="apoio-sugerido">
+      <p className="apoio-sugerido__rotulo">
+        <Icone nome="SEGURANCA" tamanho={14} />
+        Ajuda mais perto deste trecho
+      </p>
+      <button type="button" className="apoio-sugerido__nome" onClick={aoVer} title="Ver no mapa">
+        {ponto.nome}
+      </button>
+      <p className="apoio-sugerido__meta">
+        {rotulo("tiposPontoApoio", ponto.tipo)} · {formatarDistancia(ponto.distanciaMetros)} ·{" "}
+        {ponto.abertoAgora ? `aberto agora (${horario})` : `fechado agora (${horario})`}
+      </p>
+      <a className="botao botao--secundario botao--pequeno" href={`tel:${ponto.telefone}`}>
+        <Icone nome="TELEFONE" tamanho={16} />
+        Ligar {ponto.telefone}
+      </a>
+    </div>
+  );
+}
+
+function Resultado({ resultado, criterio, aoEscolher, modal, rotulo, apoios, aoVerPonto }) {
   const escolhida = resultado[criterio];
   const frase = MODAL_FRASE[modal];
   const evitadas = resultado.RAPIDA.alertas.length - resultado.SEGURA.alertas.length;
@@ -476,6 +547,9 @@ function Resultado({ resultado, criterio, aoEscolher, modal, rotulo }) {
                 <div className="lista-placas">
                   <PlacaVia via={alerta.via} semRegiao />
                 </div>
+                {apoios[alerta.id] && (
+                  <ApoioSugerido ponto={apoios[alerta.id]} rotulo={rotulo} aoVer={() => aoVerPonto(apoios[alerta.id].id)} />
+                )}
               </div>
             </li>
           ))}
