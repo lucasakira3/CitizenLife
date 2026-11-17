@@ -9,7 +9,7 @@
 Um hub com seis pilares da vida urbana. Na **Mobilidade**, a rota da saída ao destino<br />
 com o risco do caminho calculado para o seu meio de transporte.
 
-![Java 25](https://img.shields.io/badge/Java-25-287D4D?style=flat-square&logo=openjdk&logoColor=white)
+![Java 24](https://img.shields.io/badge/Java-24-287D4D?style=flat-square&logo=openjdk&logoColor=white)
 ![Oracle](https://img.shields.io/badge/Oracle-JDBC-287D4D?style=flat-square&logo=oracle&logoColor=white)
 ![React 19](https://img.shields.io/badge/React-19-2F93C8?style=flat-square&logo=react&logoColor=white)
 ![Vite](https://img.shields.io/badge/Vite-8-2F93C8?style=flat-square&logo=vite&logoColor=white)
@@ -21,7 +21,7 @@ Global Solution 2026/2 · tema **CitizenTech** · Engenharia de Software FIAP (2
 
 <br />
 
-<img src="docs/telas/inicio.jpg" alt="Página inicial do Citizen Life com os seis pilares em órbita ao redor do cidadão" width="860" />
+<img src="docs/telas/inicio.jpg" alt="Página inicial do Citizen Life com o atalho do dia e os seis pilares" width="860" />
 
 </div>
 
@@ -180,7 +180,7 @@ Os pesos e a matriz de exposição estão em [`Ocorrencia.java`](backend/src/mai
 
 ### 1. Pré-requisitos
 
-- **JDK 25** ou superior, com a variável `JAVA_HOME` apontando para a pasta do JDK
+- **JDK 24** ou superior, com a variável `JAVA_HOME` apontando para a pasta do JDK
 - **Node.js 20.19** ou superior (recomendado: 22 LTS)
 - Acesso a um banco **Oracle** (por exemplo, o Oracle da FIAP)
 
@@ -266,7 +266,7 @@ Planejar rota e ver o mapa não exigem conta. Para salvar rotas e endereços, cr
 
 | Camada | Tecnologia |
 |---|---|
-| Backend | Java 25 puro, JDBC e `HttpServer` do próprio JDK (sem Spring, sem Hibernate/JPA) |
+| Backend | Java 24 puro, JDBC e `HttpServer` do próprio JDK (sem Spring, sem Hibernate/JPA) |
 | Banco | Oracle (12c ou superior), driver oficial `ojdbc11` |
 | Front-end | React 19 com Vite (sem bibliotecas de interface, de rotas ou de mapa) |
 | Build | Maven, com Maven Wrapper incluído: não é preciso instalar o Maven |
@@ -288,7 +288,7 @@ São **28 classes** em 6 pacotes, cada uma com uma responsabilidade clara.
 
 ```
 backend/                          API Java
-├── pom.xml                       Java 25 + ojdbc11
+├── pom.xml                       Java 24 + ojdbc11
 ├── mvnw, mvnw.cmd                Maven Wrapper
 ├── db.properties.example         modelo de configuração do banco
 └── src/main/java/br/com/citizenlife/
@@ -477,7 +477,7 @@ Os integrantes estão em [`integrantes.txt`](integrantes.txt).
 | Ferramenta | Para que foi usada |
 |---|---|
 | GitHub Copilot | Estrutura inicial do projeto, depois substituída integralmente. |
-| Claude Code (Anthropic) | Backend Java (camadas, JDBC, regras de risco, tratamento de erros e a simplificação para 20 classes), script Oracle, front-end React, identidade visual, geração dos diagramas a partir do código, testes da API e esta documentação. |
+| Claude Code (Anthropic) | Backend Java (camadas, JDBC, regras de risco, tratamento de erros e a organização enxuta das classes), script Oracle, front-end React, identidade visual, geração dos diagramas a partir do código, testes da API e esta documentação. |
 
 O código produzido com apoio de IA foi revisado e testado pelo grupo, que é responsável por todo o conteúdo entregue. O [guia do código](docs/GUIA-DO-CODIGO.md) explica cada parte do sistema.
 

@@ -83,7 +83,7 @@ export default function App() {
   // Rótulos de cada código (MOTO → "Moto"), montados uma vez a partir de utils/dominio.js
   const rotulos = useMemo(() => {
     const mapa = {};
-    ["modais", "tiposOcorrencia", "niveisRisco", "tiposEndereco", "tiposPontoApoio"].forEach((grupo) => {
+    ["modais", "tiposOcorrencia", "niveisRisco", "tiposEndereco", "tiposPontoApoio", "diasSemana"].forEach((grupo) => {
       mapa[grupo] = Object.fromEntries(DOMINIO[grupo].map((item) => [item.codigo, item.rotulo]));
     });
     return mapa;

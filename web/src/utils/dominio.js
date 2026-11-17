@@ -42,6 +42,16 @@ export const DOMINIO = {
   ],
   zonas: ["Centro", "Zona Norte", "Zona Sul", "Zona Leste", "Zona Oeste"],
   /** Números nacionais de emergência, sempre visíveis no pilar Segurança. */
+  /** Dias da semana das feiras, na mesma grafia que o Java confere. */
+  diasSemana: [
+    { codigo: "SEGUNDA", rotulo: "Segunda" },
+    { codigo: "TERCA", rotulo: "Terça" },
+    { codigo: "QUARTA", rotulo: "Quarta" },
+    { codigo: "QUINTA", rotulo: "Quinta" },
+    { codigo: "SEXTA", rotulo: "Sexta" },
+    { codigo: "SABADO", rotulo: "Sábado" },
+    { codigo: "DOMINGO", rotulo: "Domingo" },
+  ],
   telefonesEmergencia: [
     { numero: "190", rotulo: "Polícia Militar" },
     { numero: "192", rotulo: "SAMU" },
