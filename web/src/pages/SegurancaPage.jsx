@@ -1,11 +1,15 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Icone from "../components/Icone.jsx";
+import Paginacao from "../components/Paginacao.jsx";
 import { Carregando, ErroCarga, Vazio } from "../components/Estados.jsx";
 import { useApp } from "../contexto.js";
 import { useCarregar } from "../hooks/useCarregar.js";
 import { useTitulo } from "../hooks/useTitulo.js";
 import { api, consulta } from "../services/api.js";
 import { formatarDistancia } from "../utils/formato.js";
+
+/** Pontos de apoio por página: duas fileiras de três no computador. */
+const POR_PAGINA = 6;
 
 /** Pilar Segurança: telefones de emergência, os pontos de apoio mais perto de casa e a lista com filtros. */
 export default function SegurancaPage() {
@@ -14,12 +18,35 @@ export default function SegurancaPage() {
   const [zona, setZona] = useState("");
   const [tipo, setTipo] = useState("");
   const [abertoAgora, setAbertoAgora] = useState(false);
+  const [pagina, setPagina] = useState(1);
+  const refLista = useRef(null);
+
+  // Trocar um filtro volta para a primeira página
+  function filtrar(definir) {
+    return (valor) => {
+      definir(valor);
+      setPagina(1);
+    };
+  }
+  const mudarZona = filtrar(setZona);
+  const mudarTipo = filtrar(setTipo);
+  const mudarAberto = filtrar(setAbertoAgora);
+
+  function irParaPagina(numero) {
+    setPagina(numero);
+    refLista.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
 
   const pontos = useCarregar(() => api.buscar(`/pontos-apoio${consulta({ zona, tipo, abertoAgora })}`), [zona, tipo, abertoAgora]);
   const proximos = useCarregar(
     () => (sessao ? api.buscar(`/cidadaos/${sessao.id}/pontos-proximos`) : Promise.resolve(null)),
     [sessao?.id],
   );
+
+  const lista = pontos.dados ?? [];
+  const totalPaginas = Math.max(1, Math.ceil(lista.length / POR_PAGINA));
+  const paginaAtual = Math.min(pagina, totalPaginas);
+  const daPagina = lista.slice((paginaAtual - 1) * POR_PAGINA, paginaAtual * POR_PAGINA);
 
   return (
     <>
@@ -57,22 +84,22 @@ export default function SegurancaPage() {
 
       {sessao && <PertoDeCasa proximos={proximos} />}
 
-      <section className="perfil-bloco" aria-labelledby="pontos-titulo">
+      <section className="perfil-bloco" aria-labelledby="pontos-titulo" ref={refLista}>
         <h2 id="pontos-titulo" className="perfil-subtitulo">Pontos de apoio</h2>
 
         <div className="filtros-seguranca">
           <div className="filtro-chips" role="group" aria-label="Filtrar por zona">
-            <button type="button" aria-pressed={!zona} onClick={() => setZona("")}>
+            <button type="button" aria-pressed={!zona} onClick={() => mudarZona("")}>
               Toda a cidade
             </button>
             {dominio.zonas.map((nome) => (
-              <button key={nome} type="button" aria-pressed={zona === nome} onClick={() => setZona(zona === nome ? "" : nome)}>
+              <button key={nome} type="button" aria-pressed={zona === nome} onClick={() => mudarZona(zona === nome ? "" : nome)}>
                 {nome}
               </button>
             ))}
           </div>
           <div className="filtro-chips" role="group" aria-label="Filtrar por tipo">
-            <button type="button" aria-pressed={!tipo} onClick={() => setTipo("")}>
+            <button type="button" aria-pressed={!tipo} onClick={() => mudarTipo("")}>
               Todos os tipos
             </button>
             {dominio.tiposPontoApoio.map((item) => (
@@ -80,14 +107,14 @@ export default function SegurancaPage() {
                 key={item.codigo}
                 type="button"
                 aria-pressed={tipo === item.codigo}
-                onClick={() => setTipo(tipo === item.codigo ? "" : item.codigo)}
+                onClick={() => mudarTipo(tipo === item.codigo ? "" : item.codigo)}
               >
                 {item.rotulo}
               </button>
             ))}
           </div>
           <label className="filtro-aberto">
-            <input type="checkbox" checked={abertoAgora} onChange={(evento) => setAbertoAgora(evento.target.checked)} />
+            <input type="checkbox" checked={abertoAgora} onChange={(evento) => mudarAberto(evento.target.checked)} />
             Só o que está aberto agora
           </label>
         </div>
@@ -97,17 +124,19 @@ export default function SegurancaPage() {
         {pontos.dados && (
           <p className="filtro-conta" role="status">
             {pontos.dados.length} {pontos.dados.length === 1 ? "ponto de apoio" : "pontos de apoio"}
+            {totalPaginas > 1 && <> · página {paginaAtual} de {totalPaginas}</>}
           </p>
         )}
         {pontos.dados && pontos.dados.length === 0 && <Vazio titulo="Nenhum ponto de apoio com estes filtros." />}
 
         <ul className="cartoes-perfil">
-          {(pontos.dados ?? []).map((ponto) => (
+          {daPagina.map((ponto) => (
             <li key={ponto.id}>
               <CartaoPonto ponto={ponto} />
             </li>
           ))}
         </ul>
+        <Paginacao pagina={paginaAtual} totalPaginas={totalPaginas} aoMudar={irParaPagina} rotulo="Páginas dos pontos de apoio" />
       </section>
     </>
   );
@@ -172,10 +201,22 @@ function CartaoPonto({ ponto }) {
       <p className="rotas-salvas__meta">
         <Icone nome="RELOGIO" tamanho={14} /> {horario}
       </p>
-      <a className="botao botao--secundario botao--pequeno ponto-apoio__ligar" href={`tel:${ponto.telefone}`}>
-        <Icone nome="TELEFONE" tamanho={16} />
-        Ligar {ponto.telefone}
-      </a>
+      <div className="ponto-apoio__acoes">
+        <a className="botao botao--secundario botao--pequeno" href={`tel:${ponto.telefone}`}>
+          <Icone nome="TELEFONE" tamanho={16} />
+          Ligar {ponto.telefone}
+        </a>
+        <a className="botao botao--secundario botao--pequeno" href={linkDoMapa(ponto)}>
+          <Icone nome="MAPA" tamanho={16} />
+          Ver no mapa
+        </a>
+      </div>
     </article>
   );
+}
+
+/** Abre o planejador de rota com o ponto de apoio como destino (a saída é a casa, se estiver salva). */
+function linkDoMapa(ponto) {
+  const busca = new URLSearchParams({ destino: ponto.nome, x: String(ponto.local.x), y: String(ponto.local.y) });
+  return `#/mobilidade/rota?${busca}`;
 }

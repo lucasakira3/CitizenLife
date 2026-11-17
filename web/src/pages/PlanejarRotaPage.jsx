@@ -42,6 +42,20 @@ function idDaUrl() {
   return Number.isInteger(id) && id > 0 ? id : null;
 }
 
+/**
+ * Destino pedido na URL (#/mobilidade/rota?destino=Nome&x=940.6&y=1108.3),
+ * quando o cidadão toca em "Ver no mapa" num ponto de apoio da Segurança.
+ */
+function destinoDaUrl() {
+  const busca = new URLSearchParams(window.location.hash.split("?")[1] ?? "");
+  const nome = busca.get("destino")?.trim();
+  const x = Number(busca.get("x"));
+  const y = Number(busca.get("y"));
+  return nome && busca.has("x") && busca.has("y") && Number.isFinite(x) && Number.isFinite(y)
+    ? { descricao: nome, x, y }
+    : null;
+}
+
 function piorNivel(alertas) {
   return alertas.reduce(
     (pior, alerta) => (!pior || ORDEM_RISCO[alerta.risco.nivel] > ORDEM_RISCO[pior.nivel] ? alerta.risco : pior),
@@ -54,9 +68,10 @@ export default function PlanejarRotaPage() {
   const { sessao, dominio, rotulo } = useApp();
   const cidadao = Boolean(sessao);
   const [idRota] = useState(idDaUrl);
+  const [destinoUrl] = useState(() => (idDaUrl() ? null : destinoDaUrl()));
 
   const [origem, setOrigem] = useState(null);
-  const [destino, setDestino] = useState(null);
+  const [destino, setDestino] = useState(destinoUrl);
   const [modal, setModal] = useState(sessao?.modal ?? "CARRO");
   const [criterio, setCriterio] = useState("SEGURA");
   const [marcando, setMarcando] = useState(null);
@@ -67,7 +82,9 @@ export default function PlanejarRotaPage() {
   const [resultado, setResultado] = useState(null); // { RAPIDA: {...}, SEGURA: {...} }
   const [calculando, setCalculando] = useState(false);
   const [erroRota, setErroRota] = useState(null);
-  const [aviso, setAviso] = useState(null);
+  const [aviso, setAviso] = useState(() =>
+    destinoUrl && !sessao ? { tipo: "info", texto: `Marque a saída para ver o caminho até ${destinoUrl.descricao}.` } : null,
+  );
 
   const [celular, setCelular] = useState(() => window.matchMedia(CELULAR).matches);
   const [painelAberto, setPainelAberto] = useState(true);
@@ -94,15 +111,25 @@ export default function PlanejarRotaPage() {
     };
   }, []);
 
-  // Endereços salvos no perfil (casa, trabalho...) viram atalhos para a saída e o destino
+  // Endereços salvos no perfil (casa, trabalho...) viram atalhos para a saída e o destino.
+  // Com destino vindo da URL, a saída começa na casa do cidadão.
   const [enderecos, setEnderecos] = useState([]);
   useEffect(() => {
     if (!cidadao) return;
     api
       .buscar(`/cidadaos/${sessao.id}/enderecos`)
-      .then(setEnderecos)
+      .then((lista) => {
+        setEnderecos(lista);
+        if (!destinoUrl) return;
+        const casa = lista.find((endereco) => endereco.tipo === "CASA");
+        if (casa) {
+          setOrigem((atual) => atual ?? { ...casa.local });
+        } else {
+          setAviso({ tipo: "info", texto: `Marque a saída para ver o caminho até ${destinoUrl.descricao}.` });
+        }
+      })
       .catch(() => setEnderecos([]));
-  }, [cidadao, sessao?.id]);
+  }, [cidadao, sessao?.id, destinoUrl]);
 
   /** Preenche a saída se ela estiver vazia; senão, o destino. */
   function usarEndereco(endereco) {

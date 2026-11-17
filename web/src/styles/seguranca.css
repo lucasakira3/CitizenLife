@@ -182,9 +182,60 @@
   gap: 0.35rem;
 }
 
-.ponto-apoio__ligar {
-  justify-self: start;
+.ponto-apoio__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-self: end;
   margin-top: 0.4rem;
+}
+
+/* Paginação da lista de pontos de apoio */
+.paginacao {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 1.4rem;
+}
+
+.paginacao__numeros {
+  display: flex;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.paginacao__numero,
+.paginacao__passo {
+  min-width: 2.5rem;
+  min-height: 2.5rem;
+  padding: 0 0.8rem;
+  border: 1px solid var(--linha);
+  border-radius: 999px;
+  background: var(--papel);
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.paginacao__numero:hover,
+.paginacao__passo:hover:not(:disabled) {
+  border-color: var(--pilar-seguranca);
+}
+
+.paginacao__numero[aria-current="page"] {
+  border-color: var(--asfalto);
+  background: var(--asfalto);
+  color: var(--papel);
+}
+
+.paginacao__passo:disabled {
+  opacity: 0.45;
+  cursor: default;
 }
 
 /* Perfil › Contatos de emergência */
