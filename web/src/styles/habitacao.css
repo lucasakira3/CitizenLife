@@ -1,0 +1,90 @@
+/* ==========================================================================
+   Habitação: consulta de programas e acompanhamento das inscrições.
+   Usa só os tokens de base.css; a cor do pilar (terracota) aparece nos ícones.
+   ========================================================================== */
+
+.filtro-moradia { display: grid; gap: 1rem; margin-bottom: 1.4rem; padding: 1.1rem 1.25rem; background: var(--papel); border-radius: 16px; box-shadow: var(--sombra); }
+.filtro-moradia__renda { max-width: 320px; }
+@media (min-width: 860px) { .filtro-moradia { grid-template-columns: minmax(0, 1fr) 300px; align-items: start; } }
+
+.habitacao-resumo { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem 1rem; margin-bottom: 1.2rem; padding: 0.9rem 1.2rem; background: var(--papel); border: 1px solid transparent; border-radius: 16px; box-shadow: var(--sombra); color: var(--texto); text-decoration: none; transition: border-color 160ms ease; }
+.habitacao-resumo:hover { border-color: var(--placa); color: var(--texto); }
+.habitacao-resumo__titulo { display: inline-flex; align-items: center; gap: 0.4rem; font-family: var(--fonte-titulo); font-weight: 800; }
+.habitacao-resumo__etapas { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.habitacao-resumo__acao { display: inline-flex; align-items: center; gap: 0.3rem; margin-left: auto; color: var(--placa); font-weight: 700; }
+
+.programas__contagem { margin: 0 0 0.8rem; color: var(--texto-suave); font-weight: 600; }
+.programas__aviso { margin-top: 1.2rem; max-width: 70ch; }
+.programas { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 380px), 1fr)); gap: 1rem; align-items: start; margin: 0; padding: 0; list-style: none; }
+
+.programa { display: grid; gap: 0.8rem; padding: 1.2rem 1.3rem; background: var(--papel); border-radius: 16px; box-shadow: var(--sombra); transition: opacity 160ms ease; }
+.programa--fora { opacity: 0.72; }
+.programa--fora:hover, .programa--fora:focus-within, .programa--fora[open] { opacity: 1; }
+.programa__cabeca { display: flex; align-items: flex-start; gap: 0.8rem; }
+.programa__icone { display: grid; place-items: center; flex-shrink: 0; width: 2.7rem; height: 2.7rem; border-radius: 12px; background: color-mix(in srgb, var(--pilar-habitacao) 14%, white); color: var(--pilar-habitacao); }
+.programa__tipo { margin: 0 0 0.15rem; font-family: var(--fonte-titulo); font-weight: 700; font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--texto-suave); }
+.programa__nome { margin: 0; font-size: 1.15rem; }
+.programa__descricao { margin: 0; color: var(--texto-suave); }
+
+.programa__etiquetas { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0; padding: 0; list-style: none; }
+.etiqueta-moradia { display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.2rem 0.65rem; border-radius: 999px; background: var(--concreto-2); color: var(--asfalto-2); font-size: 0.8rem; font-weight: 600; }
+.etiqueta-moradia--ok { background: var(--sucesso-fundo); color: var(--sucesso); }
+.etiqueta-moradia--atencao { background: var(--sinal-claro); color: var(--asfalto); }
+
+.programa__detalhes summary { display: flex; align-items: center; gap: 0.4rem; min-height: 44px; color: var(--placa); font-family: var(--fonte-titulo); font-weight: 700; cursor: pointer; list-style: none; }
+.programa__detalhes summary::-webkit-details-marker { display: none; }
+.programa__detalhes summary::after { content: ""; width: 0.55rem; height: 0.55rem; margin-left: auto; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg); transition: transform 160ms ease; }
+.programa__detalhes[open] summary::after { transform: rotate(-135deg); }
+.programa__corpo { display: grid; gap: 1rem; padding-top: 0.8rem; border-top: 1px solid var(--linha); }
+.programa__corpo h4 { display: flex; align-items: baseline; justify-content: space-between; gap: 0.6rem; margin: 0 0 0.35rem; font-family: var(--fonte-titulo); font-size: 0.8rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--texto-suave); }
+.programa__contagem { font-family: var(--fonte-texto); letter-spacing: 0; text-transform: none; font-weight: 600; }
+.programa__site { display: inline-flex; align-items: center; gap: 0.3rem; margin-top: 0.4rem; font-weight: 700; }
+
+.documentos { display: grid; gap: 0.2rem; margin: 0 0 0.6rem; padding: 0; list-style: none; }
+.documento label { display: flex; align-items: flex-start; gap: 0.6rem; min-height: 44px; padding: 0.45rem 0.6rem; border-radius: 10px; cursor: pointer; }
+.documento label:hover { background: var(--concreto); }
+.documento input { flex-shrink: 0; width: 1.15rem; height: 1.15rem; margin-top: 0.15rem; accent-color: var(--placa); }
+.documento input:checked + span { color: var(--texto-suave); text-decoration: line-through; }
+.programa__progresso { height: 6px; border-radius: 999px; background: var(--linha); overflow: hidden; }
+.programa__progresso span { display: block; height: 100%; width: calc(var(--feito) * 100%); background: var(--placa); transition: width 250ms ease; }
+
+.programa__rodape { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.6rem; padding-top: 0.8rem; border-top: 1px solid var(--linha); }
+
+/* Selos de status */
+.status-selo { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.2rem 0.65rem; border-radius: 999px; font-size: 0.78rem; font-weight: 700; }
+.status-selo--INSCRITO { background: var(--concreto-2); color: var(--asfalto-3); }
+.status-selo--EM_ANALISE { background: var(--sinal-claro); color: var(--asfalto); }
+.status-selo--APROVADO { background: var(--sucesso-fundo); color: var(--sucesso); }
+
+/* Os três passos da inscrição */
+.passos { display: flex; margin: 0; padding: 0; list-style: none; }
+.passos--INSCRITO { --destaque: var(--asfalto-3); --destaque-fundo: var(--concreto-2); --destaque-texto: var(--asfalto); }
+.passos--EM_ANALISE { --destaque: var(--sinal); --destaque-fundo: var(--sinal-claro); --destaque-texto: var(--asfalto); }
+.passos--APROVADO { --destaque: var(--placa); --destaque-fundo: var(--placa); --destaque-texto: #fff; }
+.passo { position: relative; flex: 1; min-width: 0; }
+.passo + .passo::before { content: ""; position: absolute; top: 1.35rem; right: 50%; width: 100%; height: 3px; background: var(--linha); }
+.passo--feito::before, .passo--atual::before { background: var(--placa); }
+.passo__corpo { position: relative; z-index: 1; display: grid; justify-items: center; gap: 0.35rem; width: 100%; padding: 0.2rem; background: none; border: 0; color: var(--texto-suave); font: inherit; font-size: 0.82rem; font-weight: 600; }
+.passo__corpo--botao { cursor: pointer; }
+.passo__corpo--botao:disabled { cursor: progress; }
+.passo__marca { display: grid; place-items: center; width: 2.3rem; height: 2.3rem; border: 2px solid var(--linha); border-radius: 50%; background: var(--papel); transition: border-color 150ms ease, background 150ms ease; }
+.passo__corpo--botao:hover:not(:disabled) .passo__marca { border-color: var(--placa); }
+.passo--feito .passo__marca { background: var(--placa); border-color: var(--placa); color: #fff; }
+.passo--atual .passo__marca { border-color: var(--destaque); background: var(--destaque-fundo); color: var(--destaque-texto); box-shadow: 0 0 0 4px color-mix(in srgb, var(--destaque) 20%, transparent); }
+.passo--atual .passo__corpo { color: var(--texto); font-weight: 800; }
+
+/* Perfil › Meus programas */
+.quadros--status { margin: 0 0 1.2rem; }
+.quadro__nota { font-family: var(--fonte-texto); font-size: 0.78rem; font-weight: 700; color: var(--sucesso); }
+.cartoes-perfil.inscricoes { grid-template-columns: repeat(auto-fill, minmax(min(100%, 420px), 1fr)); }
+.inscricao { display: grid; gap: 0.9rem; align-content: start; }
+.inscricao__legenda { margin: -0.4rem 0 0; text-align: center; font-size: 0.8rem; }
+.inscricao__dados { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 0.6rem 1rem; margin: 0; }
+.inscricao__dados dt { font-family: var(--fonte-titulo); font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--texto-suave); }
+.inscricao__dados dd { margin: 0; }
+.inscricao__protocolo { font-family: var(--fonte-dado); font-size: 0.9rem; }
+.inscricao__obs { margin: 0; padding: 0.6rem 0.8rem; border-left: 3px solid var(--linha-forte); border-radius: 0 10px 10px 0; background: var(--concreto); color: var(--texto-suave); font-size: 0.92rem; }
+.inscricao__dica { display: flex; align-items: flex-start; gap: 0.5rem; margin: 0; color: var(--texto-suave); font-size: 0.9rem; }
+.inscricao__dica .icone { flex-shrink: 0; margin-top: 0.15rem; color: var(--placa); }
+.inscricao-form { max-width: 620px; margin-bottom: 1.2rem; }
+.inscricao-form .perfil-subtitulo { margin-top: 0; }

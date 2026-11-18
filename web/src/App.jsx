@@ -8,6 +8,7 @@ import AlimentacaoPage from "./pages/AlimentacaoPage.jsx";
 import EmBrevePage from "./pages/EmBrevePage.jsx";
 import EntrarPage from "./pages/EntrarPage.jsx";
 import InicioPage from "./pages/InicioPage.jsx";
+import HabitacaoPage from "./pages/HabitacaoPage.jsx";
 import MapaPage from "./pages/MapaPage.jsx";
 import MobilidadePage from "./pages/MobilidadePage.jsx";
 import NaoEncontradaPage from "./pages/NaoEncontradaPage.jsx";
@@ -23,6 +24,7 @@ const ROTAS = [
   ["/mobilidade/mapa", MapaPage],
   ["/alimentacao", AlimentacaoPage],
   ["/seguranca", SegurancaPage],
+  ["/habitacao", HabitacaoPage],
   ["/perfil", PerfilPage],
   ["/perfil/:secao", PerfilPage],
   ["/perfil/:pilar/:secao", PerfilPage],
@@ -83,7 +85,7 @@ export default function App() {
   // Rótulos de cada código (MOTO → "Moto"), montados uma vez a partir de utils/dominio.js
   const rotulos = useMemo(() => {
     const mapa = {};
-    ["modais", "tiposOcorrencia", "niveisRisco", "tiposEndereco", "tiposPontoApoio", "diasSemana"].forEach((grupo) => {
+    ["modais", "tiposOcorrencia", "niveisRisco", "tiposEndereco", "tiposPontoApoio", "diasSemana", "tiposPrograma", "canaisPrograma", "statusInscricao"].forEach((grupo) => {
       mapa[grupo] = Object.fromEntries(DOMINIO[grupo].map((item) => [item.codigo, item.rotulo]));
     });
     return mapa;

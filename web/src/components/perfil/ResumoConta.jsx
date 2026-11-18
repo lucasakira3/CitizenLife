@@ -12,9 +12,11 @@ export default function ResumoConta() {
   const rotas = useCarregar(() => api.buscar(`/cidadaos/${sessao.id}/rotas`), [sessao.id]);
   const alertas = useCarregar(() => api.buscar(`/cidadaos/${sessao.id}/alertas`), [sessao.id, sessao.modal]);
   const enderecos = useCarregar(() => api.buscar(`/cidadaos/${sessao.id}/enderecos`), [sessao.id]);
+  const inscricoes = useCarregar(() => api.buscar(`/cidadaos/${sessao.id}/inscricoes`), [sessao.id]);
   const feiraHoje = useCarregar(() => api.buscar(`/cidadaos/${sessao.id}/feira-hoje`), [sessao.id]);
 
   const importantes = (alertas.dados ?? []).filter((alerta) => alerta.risco.alerta);
+  const aprovadas = (inscricoes.dados ?? []).filter((item) => item.status === "APROVADO").length;
   const outrosPilares = PILARES.filter((pilar) => !pilar.disponivel);
 
   return (
@@ -64,6 +66,13 @@ export default function ResumoConta() {
           <span className="quadro__rotulo">Feira hoje</span>
           <span className="quadro__valor">
             {feiraHoje.dados ? feiraHoje.dados.rua : "Sem feira"}
+          </span>
+        </a>
+        <a className="quadro" href="#/perfil/habitacao/programas">
+          <span className="quadro__rotulo">Moradia</span>
+          <span className="quadro__valor">
+            {inscricoes.dados ? inscricoes.dados.length : "…"}
+            {aprovadas > 0 && <span className="quadro__nota">{aprovadas} aprovada{aprovadas > 1 ? "s" : ""}</span>}
           </span>
         </a>
       </div>

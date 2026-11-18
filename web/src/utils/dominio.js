@@ -60,6 +60,25 @@ export const DOMINIO = {
     { numero: "180", rotulo: "Central da Mulher" },
   ],
   maximoContatos: 5,
+  // Habitação: os mesmos códigos dos CHECK de CL_PROGRAMA_MORADIA e CL_INSCRICAO_PROGRAMA
+  tiposPrograma: [
+    { codigo: "CASA_PROPRIA", rotulo: "Casa própria" },
+    { codigo: "ALUGUEL", rotulo: "Aluguel social" },
+    { codigo: "REGULARIZACAO", rotulo: "Regularização" },
+    { codigo: "REFORMA", rotulo: "Reforma e melhoria" },
+    { codigo: "OUTRO", rotulo: "Outros apoios" },
+  ],
+  canaisPrograma: [
+    { codigo: "ONLINE", rotulo: "Pela internet" },
+    { codigo: "PRESENCIAL", rotulo: "Presencial" },
+    { codigo: "AMBOS", rotulo: "Internet ou presencial" },
+  ],
+  /** O status segue a ordem do processo. "dica" é o que a pessoa costuma fazer em cada etapa. */
+  statusInscricao: [
+    { codigo: "INSCRITO", rotulo: "Inscrito", dica: "Guarde o comprovante e acompanhe os canais do programa." },
+    { codigo: "EM_ANALISE", rotulo: "Em análise", dica: "Mantenha os seus dados em dia: o programa pode pedir documentos extras." },
+    { codigo: "APROVADO", rotulo: "Aprovado", dica: "Leve os documentos originais e siga as orientações do programa para a próxima etapa." },
+  ],
   /** Faixas do risco, só para a legenda (o Java é quem classifica). */
   limitesRisco: { moderado: 4, alto: 7, critico: 10, alerta: 4 },
   maximoRotas: 10,
