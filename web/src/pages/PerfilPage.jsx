@@ -4,6 +4,7 @@ import Icone from "../components/Icone.jsx";
 import DadosConta from "../components/perfil/DadosConta.jsx";
 import Enderecos from "../components/perfil/Enderecos.jsx";
 import Locomocao from "../components/perfil/Locomocao.jsx";
+import MeusEstudos from "../components/perfil/MeusEstudos.jsx";
 import MinhasFeiras from "../components/perfil/MinhasFeiras.jsx";
 import MinhasRotas from "../components/perfil/MinhasRotas.jsx";
 import ResumoConta from "../components/perfil/ResumoConta.jsx";
@@ -26,6 +27,7 @@ const ABAS = {
     { id: "locomocao", rotulo: "Como me locomovo", icone: "MOTO", Componente: Locomocao },
     { id: "enderecos", rotulo: "Meus endereços", icone: "PIN", Componente: Enderecos },
   ],
+  educacao: [{ id: "interesses", rotulo: "Meus interesses e benefícios", icone: "EDUCACAO", Componente: MeusEstudos }],
   alimentacao: [{ id: "feiras", rotulo: "Minhas feiras", icone: "ALIMENTACAO", Componente: MinhasFeiras }],
 };
 
