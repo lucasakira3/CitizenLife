@@ -58,11 +58,11 @@ O Citizen Life reúne seis pilares da vida na cidade. Cada um começa por uma **
 | | Pilar | Primeira consulta | |
 |:-:|---|---|:-:|
 | 🧭 | **Mobilidade** | Rota segura e mapa de riscos | ✅ **pronto** |
-| 🎓 | Educação | Vagas e cursos gratuitos | 🚧 em breve |
+| 🎓 | **Educação** | Vagas e cursos gratuitos | ✅ **pronto** |
 | 🍴 | **Alimentação** | Feiras livres por dia e por zona | ✅ **pronto** |
 | 🛡️ | **Segurança** | Onde pedir ajuda perto de você | ✅ **pronto** |
-| 🏠 | Habitação | Programas de moradia para você | ✅ **pronto** |
-| 🌳 | Lazer | Programação gratuita por região | 🚧 em breve |
+| 🏠 | **Habitação** | Programas de moradia para você | ✅ **pronto** |
+| 🌳 | **Lazer** | Programação gratuita por região | ✅ **pronto** |
 
 Na **Mobilidade**, o cidadão:
 
@@ -83,6 +83,13 @@ Na **Segurança**, o cidadão:
 - 🗺️ **liga os pontos de apoio no mapa de riscos**: cada um vira um pino 3D na cor do tipo, com o detalhe e o botão de ligar;
 - 🚔 **recebe ajuda sugerida na rota**: quando o caminho passa por uma ocorrência de **insegurança**, o sistema indica a delegacia, base da PM ou da Guarda Civil mais perto daquele trecho (de preferência aberta agora) e marca no mapa;
 - 👥 **guarda contatos de emergência** no perfil (até 5), com link para ligar.
+
+No **Lazer**, o cidadão:
+
+- 🎟️ **vê a programação gratuita** dos próximos 7 ou 14 dias (esporte, cultura, música, infantil, cinema e oficinas), com filtro por zona e categoria e o selo **"Acontecendo agora"**;
+- 🌳 **encontra parques, praças, CEUs, centros culturais, bibliotecas e centros esportivos**, com o "aberto agora" e os 3 mais perto de casa;
+- 📅 **marca "Eu vou"** e acompanha a **agenda** no perfil (até 20 eventos; evento que já acabou não entra);
+- 🗺️ **liga os lugares de lazer no mapa** e abre cada um com a programação e o "Como chegar".
 
 ---
 
@@ -113,6 +120,14 @@ Na **Segurança**, o cidadão:
     <td><b>Segurança</b> · telefones de emergência no topo e os pontos de apoio mais perto de casa, com o que está aberto agora.</td>
     <td><b>Contatos de emergência</b> · quem avisar numa emergência; um toque liga para a pessoa.</td>
   </tr>
+  <tr>
+    <td><img src="docs/telas/lazer.jpg" alt="Pilar Lazer com a programação gratuita e o botão Eu vou" /></td>
+    <td><img src="docs/telas/agenda.jpg" alt="Aba Minha agenda no perfil com os eventos marcados" /></td>
+  </tr>
+  <tr>
+    <td><b>Lazer</b> · a programação gratuita dos próximos dias, com "Eu vou" e "Como chegar".</td>
+    <td><b>Minha agenda</b> · os eventos marcados, do mais próximo ao mais distante.</td>
+  </tr>
 </table>
 
 <details>
@@ -124,14 +139,14 @@ O menu é o mesmo em todas as páginas: os seis pilares, cada um com a sua cor. 
 
 | Página | Quem usa | O que tem |
 |---|---|---|
-| **Início** | todos | Os seis pilares em cards. Mobilidade, Alimentação e Segurança estão disponíveis; os outros, em breve |
+| **Início** | todos | Os seis pilares em cards, todos disponíveis |
 | **Mobilidade** | todos | As duas consultas do pilar e as faixas de risco |
 | **Planejar rota** | todos (salvar: com conta) | Saída e destino com busca de ruas e bairros (ou clique no mapa), atalhos para os endereços salvos, rota mais rápida e mais segura com tempo, distância e ocorrências no caminho; perto de uma ocorrência de insegurança, o ponto policial mais próximo do trecho |
-| **Mapa de riscos** | todos | São Paulo em tela cheia com dados do OpenStreetMap, placas 3D das ocorrências, câmera livre (arrastar, zoom, girar, inclinar, 2D) e filtro por zona; botão para mostrar os pontos de apoio (Segurança) como pinos 3D |
-| **Perfil** | com conta | **Resumo** (alertas, rotas e endereços), **Meus dados** (CRUD da conta) e, em **Mobilidade**, as abas *Minhas rotas* (alertas e CRUD das rotas), *Como me locomovo* e *Meus endereços* (CRUD), em **Segurança**, a aba *Contatos de emergência* (CRUD) e, em **Alimentação**, a aba *Minhas feiras* (favoritar e remover). Os outros pilares mostram as abas que vão ter |
+| **Mapa de riscos** | todos | São Paulo em tela cheia com dados do OpenStreetMap, placas 3D das ocorrências, câmera livre (arrastar, zoom, girar, inclinar, 2D) e filtro por zona; botões para mostrar os pontos de apoio (Segurança) e os lugares de lazer (Lazer) como pinos 3D |
+| **Perfil** | com conta | **Resumo** (alertas, rotas e endereços), **Meus dados** (CRUD da conta) e, em **Mobilidade**, as abas *Minhas rotas* (alertas e CRUD das rotas), *Como me locomovo* e *Meus endereços* (CRUD), em **Segurança**, a aba *Contatos de emergência* (CRUD) em **Alimentação**, a aba *Minhas feiras* (favoritar e remover) e, em **Lazer**, a aba *Minha agenda* (os eventos marcados, com a opção de tirar) |
 | **Alimentação** | todos (feira de hoje: com conta) | Feiras livres disponíveis e a feira favorita de hoje |
 | **Segurança** | todos (perto de casa: com conta) | Telefones de emergência, os 3 pontos de apoio mais perto de casa e a lista com filtros por zona, tipo e "aberto agora" |
-| **Educação, Habitação, Lazer** | todos | O que a primeira consulta do pilar vai trazer |
+| **Lazer** | todos (Eu vou e perto de casa: com conta) | Programação gratuita com filtros de zona, categoria e período, os 3 lugares mais perto de casa e os lugares com filtro de tipo e "aberto agora" |
 | **Entrar** | todos | Login, cadastro simples (nome, e-mail e senha) e duas contas de teste |
 
 As telas validam os campos antes de enviar e mostram o erro ao lado de cada campo; o Java valida de novo. A interface funciona em celular e desktop.
@@ -210,7 +225,7 @@ Se o `JAVA_HOME` sair vazio, defina com o caminho onde o JDK foi instalado e **f
 2. Abra o arquivo [`sql/script.sql`](sql/script.sql).
 3. Execute com **Executar Script (F5)**.
 
-O script cria as **10 tabelas**, insere os dados de demonstração e, no fim, mostra a contagem de linhas de cada tabela. Pode ser executado de novo a qualquer momento: o bloco inicial apaga só as tabelas do projeto (prefixo `CL_`).
+O script cria as **15 tabelas**, insere os dados de demonstração e, no fim, mostra a contagem de linhas de cada tabela. Pode ser executado de novo a qualquer momento: o bloco inicial apaga só as tabelas do projeto (prefixo `CL_`).
 
 > **Oracle da FIAP:** host `oracle.fiap.com.br`, porta `1521`, SID `ORCL`, usuário `rm` + seu número. Algumas redes (de empresa ou universidade) bloqueiam a porta 1521; se a conexão der *timeout* (ORA-12170), teste de outra rede.
 
@@ -281,7 +296,7 @@ React (fetch /api/...)
   → Oracle
 ```
 
-São **28 classes** em 6 pacotes, cada uma com uma responsabilidade clara.
+São **39 classes** em 6 pacotes, cada uma com uma responsabilidade clara.
 
 <details>
 <summary><b>Estrutura de pastas</b></summary>
@@ -293,9 +308,9 @@ backend/                          API Java
 ├── db.properties.example         modelo de configuração do banco
 └── src/main/java/br/com/citizenlife/
     ├── CitizenLife.java   main: liga as camadas e sobe o HttpServer
-    ├── model/        Cidadao, Rota, Via, Endereco, Ocorrencia (com a regra do risco), Feira, PontoApoio, ContatoEmergencia
+    ├── model/        Cidadao, Rota, Via, Endereco, Ocorrencia (com a regra do risco), Feira, PontoApoio, ContatoEmergencia, ProgramaMoradia, InscricaoPrograma, LugarLazer, EventoLazer e Horario
     ├── dao/          CrudDao<T>, um DAO por tabela principal e a Conexao (JDBC)
-    ├── service/      Cidadao, Rota, Endereco, Ocorrencia, Feira e Seguranca: validação, dono e limites
+    ├── service/      Cidadao, Rota, Endereco, Ocorrencia, Feira, Seguranca, Habitacao e Lazer: validação, dono e limites
     ├── api/          Servidor (todas as rotas HTTP num switch) e Json
     └── exception/    CitizenLifeException (com o status HTTP) e ValidacaoException
 web/                              React + Vite
@@ -369,6 +384,11 @@ Todas as respostas são JSON. Operações que exigem login recebem o id do cidad
 | DELETE | `/api/cidadaos/{id}/feiras/{idFeira}` | Remover das favoritas | o próprio cidadão |
 | GET | `/api/cidadaos/{id}/feira-hoje` | A feira favorita de hoje (204 se não houver) | o próprio cidadão |
 | GET | `/api/pontos-apoio?zona=Centro&tipo=DELEGACIA&abertoAgora=true` | Pontos de apoio com o "aberto agora" calculado (filtros opcionais) | todos |
+| GET | `/api/lugares-lazer?zona=Centro&tipo=PARQUE&abertoAgora=true` | Lugares de lazer com o "aberto agora" calculado (filtros opcionais) | todos |
+| GET | `/api/eventos-lazer?zona=&categoria=MUSICA&dias=14` | Programação gratuita que ainda não acabou, dos próximos 7 dias (ou 1 a 31) | todos |
+| GET | `/api/cidadaos/{id}/lazer-perto` | Os 3 lugares de lazer mais perto da casa (204 sem endereço salvo) | o próprio cidadão |
+| GET, POST | `/api/cidadaos/{id}/agenda` | Listar e marcar "Eu vou": `{idEvento}` | o próprio cidadão |
+| DELETE | `/api/cidadaos/{id}/agenda/{idEvento}` | Tirar o evento da agenda | o próprio cidadão |
 | GET | `/api/pontos-apoio/proximo?x=1044.3&y=1109.2&tipoOcorrencia=INSEGURANCA` | O ponto de apoio mais perto de um local do mapa, de preferência aberto agora; com `INSEGURANCA`, só delegacias, PM e Guarda Civil | todos |
 | GET | `/api/cidadaos/{id}/pontos-proximos` | Os 3 pontos de apoio mais perto da casa (204 sem endereço salvo) | o próprio cidadão |
 | GET, POST | `/api/cidadaos/{id}/contatos` | Listar e salvar contatos de emergência: `{nome, telefone, parentesco}` | o próprio cidadão |
@@ -395,7 +415,7 @@ O mapa vem do [OpenStreetMap](https://www.openstreetmap.org/copyright) (© colab
 
 ## 🗄️ Banco de dados
 
-**10 tabelas** com prefixo `CL_`, duas delas associativas N:N.
+**15 tabelas** com prefixo `CL_`, três delas associativas N:N (`CL_ROTA_VIA`, `CL_CIDADAO_FEIRA` e `CL_CIDADAO_EVENTO`).
 
 | Tabela | Papel |
 |---|---|
@@ -409,19 +429,24 @@ O mapa vem do [OpenStreetMap](https://www.openstreetmap.org/copyright) (© colab
 | `CL_CIDADAO_FEIRA` | **N:N** cidadão × feira (favoritas) |
 | `CL_PONTO_APOIO` | onde pedir ajuda: tipo e zona **CHECK**, nome **UNIQUE**, horário (24h ou abre/fecha, **CHECK**) e posição no mapa |
 | `CL_CONTATO_EMERGENCIA` | contatos do cidadão (N:1): nome **UNIQUE** por cidadão |
+| `CL_PROGRAMA_MORADIA` | programa de moradia: tipo e canal **CHECK**, nome **UNIQUE**, renda máxima opcional |
+| `CL_INSCRICAO_PROGRAMA` | inscrição do cidadão num programa: status **CHECK**, uma por programa (**UNIQUE**) |
+| `CL_LUGAR_LAZER` | parque, praça, CEU, centro cultural, biblioteca ou centro esportivo: tipo e zona **CHECK**, nome **UNIQUE**, horário e posição no mapa |
+| `CL_EVENTO_LAZER` | evento gratuito num lugar (N:1): categoria **CHECK**, título **UNIQUE** por lugar, **CHECK** fim depois do início |
+| `CL_CIDADAO_EVENTO` | **N:N** cidadão × evento (a agenda "Eu vou") |
 
-Todas as constraints têm nome explícito (`PK_`, `FK_`, `UK_`, `CK_`), os IDs usam `GENERATED ALWAYS AS IDENTITY` e os INSERTs buscam as chaves estrangeiras por campos únicos, sem depender de IDs fixos. Os dados de demonstração trazem 6 cidadãos, 45 vias, 32 ocorrências espalhadas pelas cinco zonas, 8 rotas, 12 endereços, 6 feiras, 27 pontos de apoio e 4 contatos de emergência. Os pontos de apoio são de demonstração: o telefone de cada um é a central do serviço (197, 190, 153, 192, 180 ou 156).
+Todas as constraints têm nome explícito (`PK_`, `FK_`, `UK_`, `CK_`), os IDs usam `GENERATED ALWAYS AS IDENTITY` e os INSERTs buscam as chaves estrangeiras por campos únicos, sem depender de IDs fixos. Os dados de demonstração trazem 6 cidadãos, 45 vias, 32 ocorrências espalhadas pelas cinco zonas, 8 rotas, 12 endereços, 6 feiras, 27 pontos de apoio, 4 contatos de emergência, 20 lugares de lazer e 25 eventos (com datas relativas ao dia em que o script roda, para a programação estar sempre na semana). Os pontos de apoio são de demonstração: o telefone de cada um é a central do serviço (197, 190, 153, 192, 180 ou 156).
 
 ---
 
 ## 📐 Diagramas
 
 <p align="center">
-  <img src="docs/diagrama-er.png" alt="Diagrama entidade-relacionamento com as 10 tabelas" width="860" />
+  <img src="docs/diagrama-er.png" alt="Diagrama entidade-relacionamento com as 15 tabelas" width="860" />
 </p>
 
 <p align="center">
-  <img src="docs/diagrama-classes-0-visao-geral.png" alt="Visão geral das 28 classes, camada por camada" width="860" />
+  <img src="docs/diagrama-classes-0-visao-geral.png" alt="Visão geral das 39 classes, camada por camada" width="860" />
 </p>
 
 - [Diagrama entidade-relacionamento (PDF)](docs/diagrama-er.pdf)
@@ -454,7 +479,7 @@ Os diagramas por camada mostram só o que é público e os atributos do modelo (
 
 ## 🔭 Próximos passos
 
-- **Os outros pilares**, cada um com a sua primeira consulta e as suas abas no perfil: cursos gratuitos, programas de moradia e programação gratuita.
+- **Lazer:** programação real a partir da agenda cultural e esportiva da Prefeitura, e lembrete no dia do evento marcado na agenda.
 - **Segurança:** pontos de apoio com dados abertos da Prefeitura e da SSP (endereço e horário reais) e rota a pé até o ponto sugerido.
 - **Mobilidade:** relatos de ocorrência feitos pelos próprios cidadãos e confirmados pelos órgãos da cidade, cruzados com sensores de nível de água, câmeras e dados de trânsito e clima.
 

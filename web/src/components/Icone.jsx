@@ -283,6 +283,26 @@ const DESENHOS = {
       <path d="M8 20h8M12 16v4" />
     </>
   ),
+  // Lazer: bola (esporte), nota musical (música) e palco com cortinas (cultura e centros culturais)
+  BOLA: (
+    <>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M3.5 12h17M12 3.5c2.6 2.4 2.6 14.6 0 17M12 3.5c-2.6 2.4-2.6 14.6 0 17" />
+    </>
+  ),
+  NOTA: (
+    <>
+      <path d="M9 18V5l11-2v13" />
+      <circle cx="6.5" cy="18" r="2.5" />
+      <circle cx="17.5" cy="16" r="2.5" />
+    </>
+  ),
+  PALCO: (
+    <>
+      <path d="M3 4h18M4 4v16M20 4v16M3 20h18" />
+      <path d="M4 4c1.5 4 3.5 6 6 6M20 4c-1.5 4-3.5 6-6 6" />
+    </>
+  ),
 };
 
 /** Ícone decorativo. O texto ao lado é quem dá o significado para leitores de tela. */

@@ -1,0 +1,140 @@
+/* ------------------------------------------------------------- Pilar Lazer */
+/* Reaproveita os filtros em chips e os cartões de lugar do pilar Segurança (seguranca.css). */
+
+.lazer-zonas {
+  margin: 0 0 0.6rem;
+}
+
+/* Cores dos tipos de lugar: o ícone do cartão e o pino no mapa usam as mesmas */
+.lugar-lazer__icone--PARQUE,
+.apoio3d--PARQUE { --cor-tipo: var(--placa); }
+.lugar-lazer__icone--PRACA,
+.apoio3d--PRACA { --cor-tipo: var(--folha); }
+.lugar-lazer__icone--CEU,
+.apoio3d--CEU { --cor-tipo: var(--pilar-educacao); }
+.lugar-lazer__icone--CENTRO_CULTURAL,
+.apoio3d--CENTRO_CULTURAL { --cor-tipo: var(--pilar-habitacao); }
+.lugar-lazer__icone--BIBLIOTECA,
+.apoio3d--BIBLIOTECA { --cor-tipo: var(--asfalto-2); }
+.lugar-lazer__icone--ESPORTIVO,
+.apoio3d--ESPORTIVO { --cor-tipo: var(--pilar-lazer); }
+
+/* Cartão de evento */
+.evento-lazer {
+  display: grid;
+  align-content: start;
+  gap: 0.4rem;
+  height: 100%;
+}
+
+.evento-lazer--passado {
+  opacity: 0.72;
+}
+
+.evento-lazer__topo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+}
+
+.evento-lazer__categoria {
+  --cor-categoria: var(--pilar-lazer);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--cor-categoria) 14%, var(--papel));
+  color: color-mix(in srgb, var(--cor-categoria) 50%, var(--asfalto));
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.evento-lazer__categoria--ESPORTE { --cor-categoria: var(--pilar-lazer); }
+.evento-lazer__categoria--CULTURA { --cor-categoria: var(--pilar-habitacao); }
+.evento-lazer__categoria--MUSICA { --cor-categoria: var(--pilar-educacao); }
+.evento-lazer__categoria--INFANTIL { --cor-categoria: var(--pilar-alimentacao); }
+.evento-lazer__categoria--CINEMA { --cor-categoria: var(--asfalto-3); }
+.evento-lazer__categoria--OFICINA { --cor-categoria: var(--placa); }
+
+.evento-lazer__titulo {
+  margin: 0.1rem 0 0;
+  font-size: 1.05rem;
+  line-height: 1.3;
+}
+
+.evento-lazer__quando {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0;
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--texto);
+}
+
+.evento-lazer__onde {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.evento-lazer__descricao {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--texto-suave);
+}
+
+.evento-lazer .ponto-apoio__acoes {
+  margin-top: 0.3rem;
+}
+
+/* Legenda do mapa: amostra do pino de lazer */
+.mapa3d__amostra-apoio--lazer {
+  background: var(--placa);
+}
+
+/* Mapa de riscos: botão da camada de lazer e a programação no detalhe do lugar */
+.mapa-camada--lazer[aria-pressed="true"] {
+  border-color: var(--placa);
+  background: var(--placa);
+}
+
+.mapa-detalhe__subtitulo {
+  margin: 0.9rem 0 0.4rem;
+  font-size: 0.95rem;
+}
+
+.mapa-detalhe__eventos {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0 0 0.9rem;
+  padding: 0;
+  list-style: none;
+}
+
+.mapa-detalhe__eventos li {
+  display: grid;
+  gap: 0.1rem;
+  padding-left: 0.6rem;
+  border-left: 3px solid var(--pilar-lazer);
+  font-size: 0.88rem;
+}
+
+.mapa-detalhe__eventos span {
+  color: var(--texto-suave);
+  font-size: 0.82rem;
+}
+
+.lazer-zonas__rotulo {
+  margin: 1.6rem 0 0.4rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--texto-suave);
+}

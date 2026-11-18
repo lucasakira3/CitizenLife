@@ -51,6 +51,28 @@ classDiagram
         +atualizarContato(idCidadao, idContato, ContatoEmergencia, idAtor) ContatoEmergencia
         +excluirContato(idCidadao, idContato, idAtor) void
     }
+    class HabitacaoService {
+        +int MAXIMO_OBSERVACAO$
+        +listarProgramas(tipo, Double renda) List~ProgramaMoradia~
+        +buscarPrograma(idPrograma) ProgramaMoradia
+        +lerRenda(String) Double
+        +listarInscricoes(idCidadao, idAtor) List~InscricaoPrograma~
+        +inscrever(idCidadao, InscricaoPrograma, idAtor) InscricaoPrograma
+        +atualizar(idCidadao, idInscricao, InscricaoPrograma, idAtor) InscricaoPrograma
+        +excluir(idCidadao, idInscricao, idAtor) void
+    }
+    class LazerService {
+        +int DIAS_PADRAO$
+        +int MAXIMO_DIAS$
+        +int MAXIMO_AGENDA$
+        +listarLugares(zona, tipo, soAbertos) List~LugarLazer~
+        +pertoDeCasa(idCidadao, idAtor) Perto
+        +listarEventos(zona, categoria, dias) List~EventoLazer~
+        +listarAgenda(idCidadao, idAtor) List~EventoLazer~
+        +marcar(idCidadao, idEvento, idAtor) EventoLazer
+        +desmarcar(idCidadao, idEvento, idAtor) void
+        +agora() LocalDateTime
+    }
     RotaService --> CidadaoService : exigirDono
     EnderecoService --> CidadaoService : exigirDono
     CidadaoService --> CidadaoDao
@@ -64,3 +86,10 @@ classDiagram
     SegurancaService --> PontoApoioDao
     SegurancaService --> ContatoEmergenciaDao
     SegurancaService --> EnderecoDao : casa do cidadão
+    HabitacaoService --> CidadaoService : exigirDono
+    HabitacaoService --> ProgramaMoradiaDao
+    HabitacaoService --> InscricaoProgramaDao
+    LazerService --> CidadaoService : exigirDono
+    LazerService --> LugarLazerDao
+    LazerService --> EventoLazerDao
+    LazerService --> EnderecoDao : casa do cidadão

@@ -1,5 +1,5 @@
 ---
-title: "Banco Oracle do Citizen Life: 10 tabelas"
+title: "Banco Oracle do Citizen Life: 15 tabelas"
 ---
 erDiagram
     CL_CIDADAO ||--o{ CL_ROTA : "salva"
@@ -9,6 +9,9 @@ erDiagram
     CL_VIA ||--o{ CL_OCORRENCIA : "tem"
     CL_CIDADAO ||--o{ CL_INSCRICAO_PROGRAMA : "registra"
     CL_PROGRAMA_MORADIA ||--o{ CL_INSCRICAO_PROGRAMA : "recebe"
+    CL_LUGAR_LAZER ||--o{ CL_EVENTO_LAZER : "recebe"
+    CL_CIDADAO ||--o{ CL_CIDADAO_EVENTO : "marca"
+    CL_EVENTO_LAZER ||--o{ CL_CIDADAO_EVENTO : "está na agenda de"
     CL_CIDADAO ||--o{ CL_CONTATO_EMERGENCIA : "avisa"
     CL_CIDADAO ||--o{ CL_CIDADAO_FEIRA : "favorita"
     CL_FEIRA ||--o{ CL_CIDADAO_FEIRA : "é favorita de"
@@ -115,4 +118,30 @@ erDiagram
         VARCHAR2 observacao
         DATE dt_inscricao
         DATE dt_atualizacao
+    }
+    CL_LUGAR_LAZER {
+        NUMBER id_lugar PK
+        VARCHAR2 nome UK
+        VARCHAR2 tipo "CHECK"
+        VARCHAR2 bairro
+        VARCHAR2 zona "CHECK"
+        CHAR aberto_24h "CHECK S/N"
+        VARCHAR2 abre "HH:MM, opcional"
+        VARCHAR2 fecha "HH:MM, opcional"
+        NUMBER pos_x
+        NUMBER pos_y
+    }
+    CL_EVENTO_LAZER {
+        NUMBER id_evento PK
+        NUMBER id_lugar FK
+        VARCHAR2 titulo "UK com id_lugar"
+        VARCHAR2 categoria "CHECK"
+        VARCHAR2 descricao
+        DATE dt_inicio
+        DATE dt_fim "CHECK fim > início"
+    }
+    CL_CIDADAO_EVENTO {
+        NUMBER id_cidadao PK,FK
+        NUMBER id_evento PK,FK
+        DATE dt_marcacao
     }

@@ -41,6 +41,24 @@ export const DOMINIO = {
     { codigo: "ACOLHIMENTO", rotulo: "Acolhimento", icone: "HABITACAO" },
   ],
   zonas: ["Centro", "Zona Norte", "Zona Sul", "Zona Leste", "Zona Oeste"],
+  /** Lazer: tipos de lugar (CHECK de CL_LUGAR_LAZER) e categorias de evento (CHECK de CL_EVENTO_LAZER). */
+  tiposLugarLazer: [
+    { codigo: "PARQUE", rotulo: "Parque", icone: "LAZER" },
+    { codigo: "PRACA", rotulo: "Praça", icone: "BAIRRO" },
+    { codigo: "CEU", rotulo: "CEU", icone: "EDUCACAO" },
+    { codigo: "CENTRO_CULTURAL", rotulo: "Centro cultural", icone: "PALCO" },
+    { codigo: "BIBLIOTECA", rotulo: "Biblioteca", icone: "DOCUMENTO" },
+    { codigo: "ESPORTIVO", rotulo: "Centro esportivo", icone: "BOLA" },
+  ],
+  categoriasEvento: [
+    { codigo: "ESPORTE", rotulo: "Esporte", icone: "BOLA" },
+    { codigo: "CULTURA", rotulo: "Cultura", icone: "PALCO" },
+    { codigo: "MUSICA", rotulo: "Música", icone: "NOTA" },
+    { codigo: "INFANTIL", rotulo: "Infantil", icone: "PESSOA" },
+    { codigo: "CINEMA", rotulo: "Cinema", icone: "TELA" },
+    { codigo: "OFICINA", rotulo: "Oficina", icone: "TIJOLOS" },
+  ],
+  maximoAgenda: 20,
   /** Números nacionais de emergência, sempre visíveis no pilar Segurança. */
   /** Dias da semana das feiras, na mesma grafia que o Java confere. */
   diasSemana: [

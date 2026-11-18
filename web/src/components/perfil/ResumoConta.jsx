@@ -13,11 +13,13 @@ export default function ResumoConta() {
   const alertas = useCarregar(() => api.buscar(`/cidadaos/${sessao.id}/alertas`), [sessao.id, sessao.modal]);
   const enderecos = useCarregar(() => api.buscar(`/cidadaos/${sessao.id}/enderecos`), [sessao.id]);
   const inscricoes = useCarregar(() => api.buscar(`/cidadaos/${sessao.id}/inscricoes`), [sessao.id]);
+  const agenda = useCarregar(() => api.buscar(`/cidadaos/${sessao.id}/agenda`), [sessao.id]);
   const feiraHoje = useCarregar(() => api.buscar(`/cidadaos/${sessao.id}/feira-hoje`), [sessao.id]);
 
   const importantes = (alertas.dados ?? []).filter((alerta) => alerta.risco.alerta);
   const aprovadas = (inscricoes.dados ?? []).filter((item) => item.status === "APROVADO").length;
   const outrosPilares = PILARES.filter((pilar) => !pilar.disponivel);
+  const proximosEventos = (agenda.dados ?? []).filter((evento) => !evento.terminou).length;
 
   return (
     <section className="perfil-secao" aria-labelledby="secao-resumo">
@@ -75,25 +77,31 @@ export default function ResumoConta() {
             {aprovadas > 0 && <span className="quadro__nota">{aprovadas} aprovada{aprovadas > 1 ? "s" : ""}</span>}
           </span>
         </a>
+        <a className="quadro" href="#/perfil/lazer/agenda">
+          <span className="quadro__rotulo">Agenda</span>
+          <span className="quadro__valor">{agenda.dados ? proximosEventos : "…"}</span>
+        </a>
       </div>
 
-      <div className="em-breve-linha">
-        <span className="em-breve-linha__rotulo">Em breve</span>
-        <ul>
-          {outrosPilares.map((pilar) => (
-            <li key={pilar.id}>
-              <a
-                href={`#/perfil/${pilar.id}`}
-                title={pilar.nome}
-                style={{ "--cor-pilar": pilar.cor, "--cor-icone": pilar.corIcone }}
-              >
-                <Icone nome={pilar.icone} tamanho={18} />
-                <span className="visualmente-oculto">{pilar.nome}</span>
-              </a>
-            </li>
-          ))}
-        </ul>
-      </div>
+      {outrosPilares.length > 0 && (
+        <div className="em-breve-linha">
+          <span className="em-breve-linha__rotulo">Em breve</span>
+          <ul>
+            {outrosPilares.map((pilar) => (
+              <li key={pilar.id}>
+                <a
+                  href={`#/perfil/${pilar.id}`}
+                  title={pilar.nome}
+                  style={{ "--cor-pilar": pilar.cor, "--cor-icone": pilar.corIcone }}
+                >
+                  <Icone nome={pilar.icone} tamanho={18} />
+                  <span className="visualmente-oculto">{pilar.nome}</span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </section>
   );
 }

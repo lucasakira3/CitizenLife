@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -20,8 +21,10 @@ import br.com.citizenlife.exception.ValidacaoException;
 import br.com.citizenlife.model.Cidadao;
 import br.com.citizenlife.model.ContatoEmergencia;
 import br.com.citizenlife.model.Endereco;
+import br.com.citizenlife.model.EventoLazer;
 import br.com.citizenlife.model.Feira;
 import br.com.citizenlife.model.InscricaoPrograma;
+import br.com.citizenlife.model.LugarLazer;
 import br.com.citizenlife.model.Ocorrencia;
 import br.com.citizenlife.model.PontoApoio;
 import br.com.citizenlife.model.ProgramaMoradia;
@@ -31,6 +34,7 @@ import br.com.citizenlife.service.CidadaoService;
 import br.com.citizenlife.service.EnderecoService;
 import br.com.citizenlife.service.FeiraService;
 import br.com.citizenlife.service.HabitacaoService;
+import br.com.citizenlife.service.LazerService;
 import br.com.citizenlife.service.OcorrenciaService;
 import br.com.citizenlife.service.RotaService;
 import br.com.citizenlife.service.SegurancaService;
@@ -53,10 +57,11 @@ public class Servidor implements HttpHandler {
     private final OcorrenciaService ocorrencias;
     private final SegurancaService seguranca;
     private final HabitacaoService habitacao;
+    private final LazerService lazer;
 
     public Servidor(CidadaoService cidadaos, RotaService rotas, EnderecoService enderecos,
                     FeiraService feiras, OcorrenciaService ocorrencias, SegurancaService seguranca,
-                    HabitacaoService habitacao) {
+                    HabitacaoService habitacao, LazerService lazer) {
         this.cidadaos = cidadaos;
         this.rotas = rotas;
         this.enderecos = enderecos;
@@ -64,6 +69,7 @@ public class Servidor implements HttpHandler {
         this.ocorrencias = ocorrencias;
         this.seguranca = seguranca;
         this.habitacao = habitacao;
+        this.lazer = lazer;
     }
 
     @Override
@@ -181,6 +187,44 @@ public class Servidor implements HttpHandler {
                     contato(seguranca.atualizarContato(ids.get(0), ids.get(1), lerContato(json), ator));
             case "DELETE /api/cidadaos/{id}/contatos/{id}" -> {
                 seguranca.excluirContato(ids.get(0), ids.get(1), ator);
+                yield null;
+            }
+
+            // Lazer: lugares públicos, programação gratuita e a agenda do cidadão ("Eu vou")
+            case "GET /api/lugares-lazer" -> {
+                LocalTime agora = lazer.agora().toLocalTime();
+                yield lazer.listarLugares(parametros.get("zona"), parametros.get("tipo"),
+                                "true".equals(parametros.get("abertoAgora")))
+                        .stream().map(l -> lugarLazer(l, agora)).toList();
+            }
+            case "GET /api/eventos-lazer" -> {
+                LocalDateTime agora = lazer.agora();
+                yield lazer.listarEventos(parametros.get("zona"), parametros.get("categoria"), parametros.get("dias"))
+                        .stream().map(e -> eventoLazer(e, agora)).toList();
+            }
+            case "GET /api/cidadaos/{id}/lazer-perto" -> {
+                LazerService.Perto perto = lazer.pertoDeCasa(ids.get(0), ator);
+                if (perto == null) {
+                    yield null;
+                }
+                LocalTime agora = lazer.agora().toLocalTime();
+                Map<String, Object> mapa = new LinkedHashMap<>();
+                mapa.put("referencia", endereco(perto.referencia()));
+                mapa.put("lugares", perto.lugares().stream().map(item -> {
+                    Map<String, Object> lugar = lugarLazer(item.lugar(), agora);
+                    lugar.put("distanciaMetros", item.distanciaMetros());
+                    return lugar;
+                }).toList());
+                yield mapa;
+            }
+            case "GET /api/cidadaos/{id}/agenda" -> {
+                LocalDateTime agora = lazer.agora();
+                yield lazer.listarAgenda(ids.get(0), ator).stream().map(e -> eventoLazer(e, agora)).toList();
+            }
+            case "POST /api/cidadaos/{id}/agenda" ->
+                    eventoLazer(lazer.marcar(ids.get(0), longa(json, "idEvento"), ator), lazer.agora());
+            case "DELETE /api/cidadaos/{id}/agenda/{id}" -> {
+                lazer.desmarcar(ids.get(0), ids.get(1), ator);
                 yield null;
             }
 
@@ -310,6 +354,37 @@ public class Servidor implements HttpHandler {
     private Map<String, Object> pontoProximo(SegurancaService.PontoProximo item, LocalTime agora) {
         Map<String, Object> mapa = pontoApoio(item.ponto(), agora);
         mapa.put("distanciaMetros", item.distanciaMetros());
+        return mapa;
+    }
+
+    /** O lugar de lazer com o "aberto agora" já calculado pelo Java. */
+    private Map<String, Object> lugarLazer(LugarLazer lugar, LocalTime agora) {
+        Map<String, Object> mapa = new LinkedHashMap<>();
+        mapa.put("id", lugar.getId());
+        mapa.put("nome", lugar.getNome());
+        mapa.put("tipo", lugar.getTipo());
+        mapa.put("bairro", lugar.getBairro());
+        mapa.put("zona", lugar.getZona());
+        mapa.put("aberto24h", lugar.isAberto24h());
+        mapa.put("abre", lugar.getAbre());
+        mapa.put("fecha", lugar.getFecha());
+        mapa.put("abertoAgora", lugar.estaAberto(agora));
+        mapa.put("local", ponto(lugar.getBairro(), lugar.getX(), lugar.getY()));
+        return mapa;
+    }
+
+    /** O evento com o lugar onde acontece e se está acontecendo agora. */
+    private Map<String, Object> eventoLazer(EventoLazer evento, LocalDateTime agora) {
+        Map<String, Object> mapa = new LinkedHashMap<>();
+        mapa.put("id", evento.getId());
+        mapa.put("titulo", evento.getTitulo());
+        mapa.put("categoria", evento.getCategoria());
+        mapa.put("descricao", evento.getDescricao());
+        mapa.put("inicio", evento.getInicio());
+        mapa.put("fim", evento.getFim());
+        mapa.put("acontecendo", evento.acontecendo(agora));
+        mapa.put("terminou", evento.jaTerminou(agora));
+        mapa.put("lugar", lugarLazer(evento.getLugar(), agora.toLocalTime()));
         return mapa;
     }
 

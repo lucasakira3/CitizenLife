@@ -23,7 +23,8 @@ export { zonaDaRegiao };
  * - Cada ocorrência é uma placa de advertência 3D (HTML + CSS 3D) em cima da via
  *   atingida, na cor do risco para o modal escolhido. As vias atingidas acendem.
  * - Na página de rotas, a rota calculada aparece em azul-céu, com os marcadores de saída (A) e destino (B).
- * - Pontos de apoio (pilar Segurança) aparecem como pinos com o ícone do tipo, quando a página pede.
+ * - Pontos de apoio (pilar Segurança) e lugares de lazer (pilar Lazer) aparecem como pinos com o ícone
+ *   do tipo, quando a página pede.
  *
  * modo "tela": página Mapa, câmera livre. modo "previa": quadro pequeno, câmera parada.
  */
@@ -128,6 +129,9 @@ export default function MapaCidade({
   pontosApoio = null,
   pontoAtivo = null,
   aoEscolherPonto,
+  lugaresLazer = null,
+  lugarAtivo = null,
+  aoEscolherLugar,
   ref,
 }) {
   const { rotulo } = useApp();
@@ -223,12 +227,13 @@ export default function MapaCidade({
       obstaculos: [
         ...sinais.map((sinal) => [sinal.x, sinal.y]),
         ...(pontosApoio ?? []).map((ponto) => [ponto.local.x, ponto.local.y]),
+        ...(lugaresLazer ?? []).map((lugar) => [lugar.local.x, lugar.local.y]),
       ],
       rota,
       marcadores,
     };
     aplicar();
-  }, [afetadas, sinais, pontosApoio, zonaSelecionada, riscoZona, selecionada, rota, marcadores, aplicar]);
+  }, [afetadas, sinais, pontosApoio, lugaresLazer, zonaSelecionada, riscoZona, selecionada, rota, marcadores, aplicar]);
 
   const verZona = useCallback(
     (chave) => {
@@ -293,6 +298,7 @@ export default function MapaCidade({
     if (tela) {
       if (selecionada) aoSelecionar?.(null);
       if (pontoAtivo) aoEscolherPonto?.(null);
+      if (lugarAtivo) aoEscolherLugar?.(null);
       return;
     }
     if (!aoSelecionarZona) return;
@@ -323,7 +329,7 @@ export default function MapaCidade({
     `mapa3d--${modo}`,
     pronto ? "mapa3d--pronto" : "",
     vista.em3d ? "" : "mapa3d--plano",
-    selecionada || pontoAtivo ? "mapa3d--com-selecao" : "",
+    selecionada || pontoAtivo || lugarAtivo ? "mapa3d--com-selecao" : "",
   ].join(" ");
 
   return (
@@ -366,6 +372,17 @@ export default function MapaCidade({
                 ativo={ponto.id === pontoAtivo}
                 rotulo={rotulo}
                 aoEscolher={aoEscolherPonto}
+              />
+            ))}
+            {(lugaresLazer ?? []).map((lugar, indice) => (
+              <PinoApoio
+                key={`lazer-${lugar.id}`}
+                ponto={lugar}
+                grupo="lazer"
+                indice={indice}
+                ativo={lugar.id === lugarAtivo}
+                rotulo={rotulo}
+                aoEscolher={aoEscolherLugar}
               />
             ))}
           </div>
@@ -457,6 +474,12 @@ export default function MapaCidade({
               Ponto de apoio
             </li>
           )}
+          {lugaresLazer?.length > 0 && (
+            <li>
+              <span className="mapa3d__amostra-apoio mapa3d__amostra-apoio--lazer" aria-hidden="true" />
+              Lazer
+            </li>
+          )}
         </ul>
         {foraDoMapa > 0 && (
           <p className="mapa3d__aviso">
@@ -542,10 +565,18 @@ const ICONE_APOIO = {
   GUARDA_MUNICIPAL: "ESCUDO",
   SAUDE_24H: "MAIS",
   ACOLHIMENTO: "HABITACAO",
+  // Lugares de lazer
+  PARQUE: "LAZER",
+  PRACA: "BAIRRO",
+  CEU: "EDUCACAO",
+  CENTRO_CULTURAL: "PALCO",
+  BIBLIOTECA: "DOCUMENTO",
+  ESPORTIVO: "BOLA",
 };
 
-const PinoApoio = memo(function PinoApoio({ ponto, indice, ativo, rotulo, aoEscolher }) {
-  const tipo = rotulo("tiposPontoApoio", ponto.tipo);
+/** Pino de um lugar do mapa: ponto de apoio (grupo "apoio") ou lugar de lazer (grupo "lazer"). */
+const PinoApoio = memo(function PinoApoio({ ponto, grupo = "apoio", indice, ativo, rotulo, aoEscolher }) {
+  const tipo = rotulo(grupo === "lazer" ? "tiposLugarLazer" : "tiposPontoApoio", ponto.tipo);
   const estado = ponto.abertoAgora ? "aberto agora" : "fechado agora";
   const descricao = `${ponto.nome}. ${tipo}, ${estado}.`;
   const conteudo = (

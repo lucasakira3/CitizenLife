@@ -37,6 +37,22 @@ classDiagram
     class ContatoEmergenciaDao {
         +listarPorCidadao(long) List~ContatoEmergencia~
     }
+    class ProgramaMoradiaDao {
+        +listar(String tipo) List~ProgramaMoradia~
+        +buscarPorId(long) Optional~ProgramaMoradia~
+    }
+    class InscricaoProgramaDao {
+        +listarPorCidadao(long) List~InscricaoPrograma~
+    }
+    class LugarLazerDao {
+        +listarPorZonaETipo(String, String) List~LugarLazer~
+    }
+    class EventoLazerDao {
+        +listarEntre(desde, ate, zona, categoria) List~EventoLazer~
+        +listarAgenda(long) List~EventoLazer~
+        +marcar(long, long) void
+        +desmarcar(long, long) boolean
+    }
     class Conexao {
         <<final>>
         +abrir()$ Connection
@@ -49,6 +65,9 @@ classDiagram
     CrudDao <|.. FeiraDao : T = Feira
     CrudDao <|.. PontoApoioDao : T = PontoApoio
     CrudDao <|.. ContatoEmergenciaDao : T = ContatoEmergencia
+    CrudDao <|.. InscricaoProgramaDao : T = InscricaoPrograma
+    CrudDao <|.. LugarLazerDao : T = LugarLazer
+    CrudDao <|.. EventoLazerDao : T = EventoLazer
     CidadaoDao ..> Conexao
     RotaDao ..> Conexao
     EnderecoDao ..> Conexao
@@ -56,3 +75,7 @@ classDiagram
     FeiraDao ..> Conexao
     PontoApoioDao ..> Conexao
     ContatoEmergenciaDao ..> Conexao
+    ProgramaMoradiaDao ..> Conexao
+    InscricaoProgramaDao ..> Conexao
+    LugarLazerDao ..> Conexao
+    EventoLazerDao ..> Conexao
