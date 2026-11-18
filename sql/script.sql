@@ -1,6 +1,6 @@
 -- =====================================================================
 -- Citizen Life · Global Solution 2026/2 · CitizenTech (FIAP)
--- Script Oracle: as 6 tabelas do projeto e os dados de demonstração.
+-- Script Oracle: as tabelas do projeto e os dados de demonstração.
 --
 -- Como executar (SQL Developer): abra este arquivo e use "Executar Script" (F5).
 -- Pode ser executado de novo a qualquer momento: o bloco inicial apaga só as
@@ -12,7 +12,7 @@
 -- 1. Limpeza ----------------------------------------------------------
 BEGIN
     FOR tabela IN (SELECT table_name FROM user_tables
-                    WHERE table_name IN ('CL_CIDADAO_FEIRA', 'CL_FEIRA', 'CL_ENDERECO', 'CL_ROTA_VIA', 'CL_ROTA',
+                    WHERE table_name IN ('CL_INSCRICAO_PROGRAMA', 'CL_PROGRAMA_MORADIA', 'CL_CONTATO_EMERGENCIA', 'CL_PONTO_APOIO', 'CL_CIDADAO_FEIRA', 'CL_FEIRA', 'CL_ENDERECO', 'CL_ROTA_VIA', 'CL_ROTA',
                                          'CL_OCORRENCIA', 'CL_CIDADAO', 'CL_VIA', 'CL_OCORRENCIA_VIA', 'CL_REGIAO'))
     LOOP
         EXECUTE IMMEDIATE 'DROP TABLE ' || tabela.table_name || ' CASCADE CONSTRAINTS PURGE';
@@ -131,6 +131,80 @@ CREATE TABLE cl_cidadao_feira (
     CONSTRAINT fk_cl_cidadao_feira_feira FOREIGN KEY (id_feira) REFERENCES cl_feira (id_feira) ON DELETE CASCADE
 );
 
+-- Segurança: onde pedir ajuda. Delegacias, bases da PM e da GCM, saúde 24h e centros de acolhimento.
+-- pos_x e pos_y estão no mesmo sistema do mapa (e de CL_ENDERECO): 1 unidade = 25 metros.
+-- Quem não abre 24 horas informa abre e fecha no formato HH:MM.
+CREATE TABLE cl_ponto_apoio (
+    id_ponto    NUMBER(10)    GENERATED ALWAYS AS IDENTITY,
+    nome        VARCHAR2(80)  NOT NULL,
+    tipo        VARCHAR2(20)  NOT NULL,
+    bairro      VARCHAR2(60)  NOT NULL,
+    zona        VARCHAR2(20)  NOT NULL,
+    telefone    VARCHAR2(20)  NOT NULL,
+    aberto_24h  CHAR(1)       DEFAULT 'S' NOT NULL,
+    abre        VARCHAR2(5),
+    fecha       VARCHAR2(5),
+    pos_x       NUMBER(8, 2)  NOT NULL,
+    pos_y       NUMBER(8, 2)  NOT NULL,
+    CONSTRAINT pk_cl_ponto_apoio PRIMARY KEY (id_ponto),
+    CONSTRAINT uk_cl_ponto_apoio_nome UNIQUE (nome),
+    CONSTRAINT ck_cl_ponto_apoio_tipo CHECK (tipo IN ('DELEGACIA', 'DELEGACIA_MULHER', 'POLICIA_MILITAR',
+                                                      'GUARDA_MUNICIPAL', 'SAUDE_24H', 'ACOLHIMENTO')),
+    CONSTRAINT ck_cl_ponto_apoio_zona CHECK (zona IN ('Centro', 'Zona Norte', 'Zona Sul', 'Zona Leste', 'Zona Oeste')),
+    CONSTRAINT ck_cl_ponto_apoio_24h CHECK (aberto_24h IN ('S', 'N')),
+    CONSTRAINT ck_cl_ponto_apoio_horario CHECK (aberto_24h = 'S' OR (abre IS NOT NULL AND fecha IS NOT NULL))
+);
+
+-- Contatos de emergência do cidadão (N:1). O nome não se repete para o mesmo cidadão.
+CREATE TABLE cl_contato_emergencia (
+    id_contato   NUMBER(10)   GENERATED ALWAYS AS IDENTITY,
+    id_cidadao   NUMBER(10)   NOT NULL,
+    nome         VARCHAR2(60) NOT NULL,
+    telefone     VARCHAR2(20) NOT NULL,
+    parentesco   VARCHAR2(30),
+    CONSTRAINT pk_cl_contato_emergencia PRIMARY KEY (id_contato),
+    CONSTRAINT fk_cl_contato_cidadao FOREIGN KEY (id_cidadao) REFERENCES cl_cidadao (id_cidadao) ON DELETE CASCADE,
+    CONSTRAINT uk_cl_contato_nome UNIQUE (id_cidadao, nome)
+);
+
+
+-- Habitação · consulta: programas de moradia (Minha Casa Minha Vida, aluguel social, regularização...).
+-- "documentos" guarda a lista separada por ponto e vírgula; renda_maxima vazia = o programa não tem teto de renda.
+CREATE TABLE cl_programa_moradia (
+    id_programa      NUMBER(10)    GENERATED ALWAYS AS IDENTITY,
+    nome             VARCHAR2(100) NOT NULL,
+    tipo             VARCHAR2(15)  NOT NULL,
+    canal            VARCHAR2(10)  NOT NULL,
+    descricao        VARCHAR2(300) NOT NULL,
+    quem_tem_direito VARCHAR2(500) NOT NULL,
+    renda_maxima     NUMBER(9,2),
+    documentos       VARCHAR2(600) NOT NULL,
+    onde_inscrever   VARCHAR2(300) NOT NULL,
+    site             VARCHAR2(150),
+    CONSTRAINT pk_cl_programa_moradia PRIMARY KEY (id_programa),
+    CONSTRAINT uk_cl_programa_nome UNIQUE (nome),
+    CONSTRAINT ck_cl_programa_tipo CHECK (tipo IN ('CASA_PROPRIA', 'ALUGUEL', 'REGULARIZACAO', 'REFORMA', 'OUTRO')),
+    CONSTRAINT ck_cl_programa_canal CHECK (canal IN ('ONLINE', 'PRESENCIAL', 'AMBOS')),
+    CONSTRAINT ck_cl_programa_renda CHECK (renda_maxima IS NULL OR renda_maxima > 0)
+);
+
+-- Habitação · perfil: os programas em que o cidadão se inscreveu e em que pé está cada um (N:N cidadão × programa,
+-- com atributos próprios). Um cidadão só se inscreve uma vez em cada programa.
+CREATE TABLE cl_inscricao_programa (
+    id_inscricao   NUMBER(10)    GENERATED ALWAYS AS IDENTITY,
+    id_cidadao     NUMBER(10)    NOT NULL,
+    id_programa    NUMBER(10)    NOT NULL,
+    status         VARCHAR2(10)  DEFAULT 'INSCRITO' NOT NULL,
+    protocolo      VARCHAR2(30),
+    observacao     VARCHAR2(200),
+    dt_inscricao   DATE          DEFAULT SYSDATE NOT NULL,
+    dt_atualizacao DATE          DEFAULT SYSDATE NOT NULL,
+    CONSTRAINT pk_cl_inscricao_programa PRIMARY KEY (id_inscricao),
+    CONSTRAINT fk_cl_inscricao_cidadao FOREIGN KEY (id_cidadao) REFERENCES cl_cidadao (id_cidadao) ON DELETE CASCADE,
+    CONSTRAINT fk_cl_inscricao_programa FOREIGN KEY (id_programa) REFERENCES cl_programa_moradia (id_programa) ON DELETE CASCADE,
+    CONSTRAINT uk_cl_inscricao_prog UNIQUE (id_cidadao, id_programa),
+    CONSTRAINT ck_cl_inscricao_status CHECK (status IN ('INSCRITO', 'EM_ANALISE', 'APROVADO'))
+);
 
 -- 3. Dados de demonstração --------------------------------------------
 -- As chaves estrangeiras são buscadas por campos únicos (nome, e-mail, título),
@@ -487,6 +561,184 @@ FROM cl_cidadao c
 JOIN cl_feira f ON f.rua = 'Avenida Paulista' AND f.dia_semana = 'QUARTA'
 WHERE c.email IN ('bruno.lima@exemplo.com', 'carla.mendes@exemplo.com');
 
+-- Segurança: pontos de apoio (dados de demonstração; o telefone é a central do serviço)
+INSERT INTO cl_ponto_apoio (nome, tipo, bairro, zona, telefone, aberto_24h, abre, fecha, pos_x, pos_y)
+VALUES ('Delegacia de Polícia · Sé', 'DELEGACIA', 'Sé', 'Centro', '197', 'S', NULL, NULL, 1056.4, 1098.2);
+INSERT INTO cl_ponto_apoio (nome, tipo, bairro, zona, telefone, aberto_24h, abre, fecha, pos_x, pos_y)
+VALUES ('Delegacia da Mulher · República', 'DELEGACIA_MULHER', 'República', 'Centro', '180', 'S', NULL, NULL, 1019.8, 1084.6);
+INSERT INTO cl_ponto_apoio (nome, tipo, bairro, zona, telefone, aberto_24h, abre, fecha, pos_x, pos_y)
+VALUES ('Base da Polícia Militar · Santa Cecília', 'POLICIA_MILITAR', 'Santa Cecília', 'Centro', '190', 'S', NULL, NULL, 951.2, 1050.1);
+INSERT INTO cl_ponto_apoio (nome, tipo, bairro, zona, telefone, aberto_24h, abre, fecha, pos_x, pos_y)
+VALUES ('Base da Guarda Civil · Liberdade', 'GUARDA_MUNICIPAL', 'Liberdade', 'Centro', '153', 'S', NULL, NULL, 1058.3, 1176.4);
+INSERT INTO cl_ponto_apoio (nome, tipo, bairro, zona, telefone, aberto_24h, abre, fecha, pos_x, pos_y)
+VALUES ('Pronto-socorro · Bela Vista', 'SAUDE_24H', 'Bela Vista', 'Centro', '192', 'S', NULL, NULL, 982.1, 1148.9);
+INSERT INTO cl_ponto_apoio (nome, tipo, bairro, zona, telefone, aberto_24h, abre, fecha, pos_x, pos_y)
+VALUES ('Centro de Referência da Mulher · Consolação', 'ACOLHIMENTO', 'Consolação', 'Centro', '156', 'N', '08:00', '18:00', 940.6, 1108.3);
+INSERT INTO cl_ponto_apoio (nome, tipo, bairro, zona, telefone, aberto_24h, abre, fecha, pos_x, pos_y)
+VALUES ('Delegacia de Polícia · Santana', 'DELEGACIA', 'Santana', 'Zona Norte', '197', 'S', NULL, NULL, 1070.1, 899.4);
+INSERT INTO cl_ponto_apoio (nome, tipo, bairro, zona, telefone, aberto_24h, abre, fecha, pos_x, pos_y)
+VALUES ('Base da Guarda Civil · Casa Verde', 'GUARDA_MUNICIPAL', 'Casa Verde', 'Zona Norte', '153', 'S', NULL, NULL, 957.4, 909.8);
+INSERT INTO cl_ponto_apoio (nome, tipo, bairro, zona, telefone, aberto_24h, abre, fecha, pos_x, pos_y)
+VALUES ('UPA 24h · Tucuruvi', 'SAUDE_24H', 'Tucuruvi', 'Zona Norte', '192', 'S', NULL, NULL, 1164.9, 804.1);
+INSERT INTO cl_ponto_apoio (nome, tipo, bairro, zona, telefone, aberto_24h, abre, fecha, pos_x, pos_y)
+VALUES ('Base da Polícia Militar · Brasilândia', 'POLICIA_MILITAR', 'Brasilândia', 'Zona Norte', '190', 'S', NULL, NULL, 812.6, 735.2);
+INSERT INTO cl_ponto_apoio (nome, tipo, bairro, zona, telefone, aberto_24h, abre, fecha, pos_x, pos_y)
+VALUES ('Centro de Assistência Social · Freguesia do Ó', 'ACOLHIMENTO', 'Freguesia do Ó', 'Zona Norte', '156', 'N', '08:00', '17:00', 797.3, 827.0);
+INSERT INTO cl_ponto_apoio (nome, tipo, bairro, zona, telefone, aberto_24h, abre, fecha, pos_x, pos_y)
+VALUES ('Delegacia de Polícia · Tatuapé', 'DELEGACIA', 'Tatuapé', 'Zona Leste', '197', 'S', NULL, NULL, 1288.7, 1071.3);
+INSERT INTO cl_ponto_apoio (nome, tipo, bairro, zona, telefone, aberto_24h, abre, fecha, pos_x, pos_y)
+VALUES ('Delegacia da Mulher · Penha', 'DELEGACIA_MULHER', 'Penha', 'Zona Leste', '180', 'N', '09:00', '18:00', 1408.2, 995.0);
+INSERT INTO cl_ponto_apoio (nome, tipo, bairro, zona, telefone, aberto_24h, abre, fecha, pos_x, pos_y)
+VALUES ('Base da Polícia Militar · Itaquera', 'POLICIA_MILITAR', 'Itaquera', 'Zona Leste', '190', 'S', NULL, NULL, 1768.1, 1049.7);
+INSERT INTO cl_ponto_apoio (nome, tipo, bairro, zona, telefone, aberto_24h, abre, fecha, pos_x, pos_y)
+VALUES ('UPA 24h · São Mateus', 'SAUDE_24H', 'São Mateus', 'Zona Leste', '192', 'S', NULL, NULL, 1661.4, 1318.2);
+INSERT INTO cl_ponto_apoio (nome, tipo, bairro, zona, telefone, aberto_24h, abre, fecha, pos_x, pos_y)
+VALUES ('Base da Guarda Civil · Mooca', 'GUARDA_MUNICIPAL', 'Mooca', 'Zona Leste', '153', 'S', NULL, NULL, 1197.6, 1151.6);
+INSERT INTO cl_ponto_apoio (nome, tipo, bairro, zona, telefone, aberto_24h, abre, fecha, pos_x, pos_y)
+VALUES ('Centro de Assistência Social · Guaianases', 'ACOLHIMENTO', 'Guaianases', 'Zona Leste', '156', 'N', '08:00', '17:00', 1966.0, 1121.5);
+INSERT INTO cl_ponto_apoio (nome, tipo, bairro, zona, telefone, aberto_24h, abre, fecha, pos_x, pos_y)
+VALUES ('Delegacia de Polícia · Vila Mariana', 'DELEGACIA', 'Vila Mariana', 'Zona Sul', '197', 'S', NULL, NULL, 1040.6, 1292.7);
+INSERT INTO cl_ponto_apoio (nome, tipo, bairro, zona, telefone, aberto_24h, abre, fecha, pos_x, pos_y)
+VALUES ('Delegacia da Mulher · Santo Amaro', 'DELEGACIA_MULHER', 'Santo Amaro', 'Zona Sul', '180', 'S', NULL, NULL, 775.5, 1505.4);
+INSERT INTO cl_ponto_apoio (nome, tipo, bairro, zona, telefone, aberto_24h, abre, fecha, pos_x, pos_y)
+VALUES ('Base da Polícia Militar · Jabaquara', 'POLICIA_MILITAR', 'Jabaquara', 'Zona Sul', '190', 'S', NULL, NULL, 1000.9, 1541.6);
+INSERT INTO cl_ponto_apoio (nome, tipo, bairro, zona, telefone, aberto_24h, abre, fecha, pos_x, pos_y)
+VALUES ('UPA 24h · Campo Limpo', 'SAUDE_24H', 'Campo Limpo', 'Zona Sul', '192', 'S', NULL, NULL, 522.4, 1486.2);
+INSERT INTO cl_ponto_apoio (nome, tipo, bairro, zona, telefone, aberto_24h, abre, fecha, pos_x, pos_y)
+VALUES ('Base da Guarda Civil · Ipiranga', 'GUARDA_MUNICIPAL', 'Ipiranga', 'Zona Sul', '153', 'S', NULL, NULL, 1175.4, 1301.6);
+INSERT INTO cl_ponto_apoio (nome, tipo, bairro, zona, telefone, aberto_24h, abre, fecha, pos_x, pos_y)
+VALUES ('Centro de Assistência Social · Capão Redondo', 'ACOLHIMENTO', 'Capão Redondo', 'Zona Sul', '156', 'N', '08:00', '17:00', 452.9, 1640.8);
+INSERT INTO cl_ponto_apoio (nome, tipo, bairro, zona, telefone, aberto_24h, abre, fecha, pos_x, pos_y)
+VALUES ('Delegacia de Polícia · Pinheiros', 'DELEGACIA', 'Pinheiros', 'Zona Oeste', '197', 'S', NULL, NULL, 836.8, 1164.3);
+INSERT INTO cl_ponto_apoio (nome, tipo, bairro, zona, telefone, aberto_24h, abre, fecha, pos_x, pos_y)
+VALUES ('Base da Polícia Militar · Lapa', 'POLICIA_MILITAR', 'Lapa', 'Zona Oeste', '190', 'S', NULL, NULL, 760.8, 978.2);
+INSERT INTO cl_ponto_apoio (nome, tipo, bairro, zona, telefone, aberto_24h, abre, fecha, pos_x, pos_y)
+VALUES ('UPA 24h · Butantã', 'SAUDE_24H', 'Butantã', 'Zona Oeste', '192', 'S', NULL, NULL, 665.0, 1189.9);
+INSERT INTO cl_ponto_apoio (nome, tipo, bairro, zona, telefone, aberto_24h, abre, fecha, pos_x, pos_y)
+VALUES ('Base da Guarda Civil · Perdizes', 'GUARDA_MUNICIPAL', 'Perdizes', 'Zona Oeste', '153', 'S', NULL, NULL, 896.8, 1059.8);
+
+INSERT INTO cl_contato_emergencia (id_cidadao, nome, telefone, parentesco)
+SELECT id_cidadao, 'Marina Souza', '(11) 98888-0101', 'Irmã' FROM cl_cidadao WHERE email = 'ana.souza@exemplo.com';
+INSERT INTO cl_contato_emergencia (id_cidadao, nome, telefone, parentesco)
+SELECT id_cidadao, 'Roberto Souza', '(11) 97777-0102', 'Pai' FROM cl_cidadao WHERE email = 'ana.souza@exemplo.com';
+INSERT INTO cl_contato_emergencia (id_cidadao, nome, telefone, parentesco)
+SELECT id_cidadao, 'Lúcia Ferreira', '(11) 96666-0201', 'Mãe' FROM cl_cidadao WHERE email = 'elisa.ferreira@exemplo.com';
+INSERT INTO cl_contato_emergencia (id_cidadao, nome, telefone, parentesco)
+SELECT id_cidadao, 'Gabriel Rocha', '(11) 95555-0301', 'Irmão' FROM cl_cidadao WHERE email = 'felipe.rocha@exemplo.com';
+
+-- 3.7 Programas de moradia (Habitação · consulta)
+-- Faixas e limites conferidos nas regras do MCMV de 2026 (Portaria MCID 333/2026). Os valores mudam: confirme no site oficial.
+INSERT INTO cl_programa_moradia (nome, tipo, canal, descricao, quem_tem_direito, renda_maxima, documentos, onde_inscrever, site)
+VALUES ('Minha Casa Minha Vida · Faixa 1', 'CASA_PROPRIA', 'AMBOS',
+        'Casa própria com o maior subsídio do programa, em empreendimentos selecionados pela Prefeitura.',
+        'Famílias com renda mensal bruta de até R$ 3.200, inscritas no CadÚnico e sem imóvel próprio. A seleção segue sorteio e critérios de prioridade, como mulheres responsáveis pela família, idosos e pessoas com deficiência.',
+        3200,
+        'RG e CPF de todos da família;CadÚnico atualizado (NIS);Comprovante de residência;Comprovante de renda ou autodeclaração;Certidão de nascimento ou casamento',
+        'Cadastro habitacional da Prefeitura (Sehab) nos períodos de inscrição. Para atualizar o CadÚnico, procure o CRAS da sua região.',
+        'https://prefeitura.sp.gov.br/web/habitacao');
+
+INSERT INTO cl_programa_moradia (nome, tipo, canal, descricao, quem_tem_direito, renda_maxima, documentos, onde_inscrever, site)
+VALUES ('Minha Casa Minha Vida · Faixas 2, 3 e 4', 'CASA_PROPRIA', 'AMBOS',
+        'Financiamento de imóvel novo ou usado com juros abaixo do mercado e, nas faixas de menor renda, subsídio na entrada.',
+        'Famílias com renda mensal bruta de até R$ 13.000: faixa 2 até R$ 5.000, faixa 3 até R$ 9.600 e faixa 4 até R$ 13.000. O crédito precisa ser aprovado pelo banco e o imóvel precisa estar dentro do valor máximo da faixa.',
+        13000,
+        'RG e CPF;Comprovante de renda dos últimos meses;Comprovante de residência;Certidão de nascimento ou casamento;Carteira de trabalho ou declaração do Imposto de Renda',
+        'Direto na Caixa ou em outro banco do programa, ou com a construtora do empreendimento que você escolheu.',
+        'https://www.caixa.gov.br');
+
+INSERT INTO cl_programa_moradia (nome, tipo, canal, descricao, quem_tem_direito, renda_maxima, documentos, onde_inscrever, site)
+VALUES ('Programa de moradia da CDHU', 'CASA_PROPRIA', 'AMBOS',
+        'Moradia popular do governo do Estado de São Paulo, com inscrição em períodos divulgados pela companhia.',
+        'Famílias de baixa renda que atendam aos critérios do programa estadual vigente. Cada período de inscrição publica as regras, as faixas de renda e os grupos com prioridade.',
+        NULL,
+        'RG e CPF;Comprovante de residência;Comprovante de renda familiar;Certidão de nascimento ou casamento',
+        'Site da CDHU ou atendimento presencial da companhia, nos períodos de inscrição.',
+        'https://www.cdhu.sp.gov.br');
+
+INSERT INTO cl_programa_moradia (nome, tipo, canal, descricao, quem_tem_direito, renda_maxima, documentos, onde_inscrever, site)
+VALUES ('Auxílio aluguel (aluguel social)', 'ALUGUEL', 'PRESENCIAL',
+        'Benefício temporário em dinheiro para pagar aluguel enquanto a família espera uma solução de moradia definitiva.',
+        'Famílias em emergência habitacional, como removidas de áreas de risco, atingidas por enchentes ou por obras públicas, que não tenham imóvel próprio. Depende de laudo da assistência social ou da Defesa Civil.',
+        NULL,
+        'RG ou documento oficial com foto;CPF;Comprovante de renda familiar ou autodeclaração;Comprovante de residência ou termo de remoção;Laudo da Defesa Civil ou relatório da assistência social',
+        'CRAS da sua região ou atendimento da Sehab. Parte do atendimento também pode ser consultada pelo SP156.',
+        'https://prefeitura.sp.gov.br/web/habitacao');
+
+INSERT INTO cl_programa_moradia (nome, tipo, canal, descricao, quem_tem_direito, renda_maxima, documentos, onde_inscrever, site)
+VALUES ('Auxílio aluguel para mulheres em situação de violência', 'ALUGUEL', 'PRESENCIAL',
+        'R$ 400 por mês, como complemento de renda para as despesas de moradia.',
+        'Mulheres vítimas de violência doméstica em situação de vulnerabilidade social, atendidas pela rede de proteção do município.',
+        NULL,
+        'RG ou documento oficial com foto;CPF;Comprovante de renda ou autodeclaração;Boletim de ocorrência ou relatório do atendimento, quando houver',
+        'Casa da Mulher Brasileira, Casas da Mulher e Centros de Defesa e de Convivência da Mulher (CDCM), da Secretaria de Direitos Humanos.',
+        'https://www.prefeitura.sp.gov.br/cidade/secretarias/direitos_humanos/mulheres/auxilio_aluguel/');
+
+INSERT INTO cl_programa_moradia (nome, tipo, canal, descricao, quem_tem_direito, renda_maxima, documentos, onde_inscrever, site)
+VALUES ('Locação social', 'ALUGUEL', 'PRESENCIAL',
+        'Apartamentos públicos alugados com valor subsidiado, para quem precisa de moradia sem comprar um imóvel.',
+        'Famílias de baixa renda em vulnerabilidade habitacional. A seleção e o valor do aluguel dependem da renda e da análise da Sehab.',
+        NULL,
+        'RG e CPF;Comprovante de renda familiar;Comprovante de residência;Certidão de nascimento ou casamento;CadÚnico atualizado',
+        'Atendimento da Secretaria Municipal de Habitação (Sehab) ou chamamentos públicos divulgados no Diário Oficial.',
+        'https://prefeitura.sp.gov.br/web/habitacao');
+
+INSERT INTO cl_programa_moradia (nome, tipo, canal, descricao, quem_tem_direito, renda_maxima, documentos, onde_inscrever, site)
+VALUES ('Regularização fundiária (escritura do seu imóvel)', 'REGULARIZACAO', 'PRESENCIAL',
+        'Transforma a posse em propriedade: a família passa a ter o documento do imóvel em seu nome.',
+        'Moradores de loteamentos, conjuntos ou núcleos urbanos irregulares já consolidados. Para famílias de baixa renda, a regularização é gratuita. Confira antes se o seu bairro já tem um processo aberto.',
+        NULL,
+        'RG e CPF;Comprovante de residência (conta de água ou luz);Contrato de compra e venda, recibo ou declaração de posse;Certidão de nascimento ou casamento;CadÚnico ou comprovante de renda',
+        'Sehab ou subprefeitura da sua região, que informam se o seu núcleo está em processo de regularização.',
+        'https://prefeitura.sp.gov.br/web/habitacao');
+
+INSERT INTO cl_programa_moradia (nome, tipo, canal, descricao, quem_tem_direito, renda_maxima, documentos, onde_inscrever, site)
+VALUES ('Reforma Casa Brasil', 'REFORMA', 'ONLINE',
+        'Crédito de R$ 10 mil a R$ 50 mil para reformar, melhorar ou ampliar a sua casa, com juros reduzidos.',
+        'Famílias com renda mensal bruta de até R$ 13.000 e imóvel em área urbana, que pode ser próprio, alugado ou cedido. A Caixa analisa o crédito, e quem mora em área de risco não pode participar.',
+        13000,
+        'RG e CPF;Comprovante de renda;Comprovante de residência;Fotos do imóvel que será reformado',
+        'Site ou aplicativo da Caixa (simulação e contratação 100% digitais) ou agência da Caixa.',
+        'https://www.caixa.gov.br');
+
+INSERT INTO cl_programa_moradia (nome, tipo, canal, descricao, quem_tem_direito, renda_maxima, documentos, onde_inscrever, site)
+VALUES ('Orientação jurídica sobre despejo e remoção', 'OUTRO', 'AMBOS',
+        'Defesa gratuita de quem foi notificado para sair de casa ou corre risco de remoção.',
+        'Pessoas que não podem pagar um advogado e enfrentam despejo, reintegração de posse ou remoção. Você tem direito de receber uma notificação formal ou um mandado judicial antes de sair.',
+        NULL,
+        'RG e CPF;Comprovante de residência;Notificação, mandado ou processo recebido;Contrato de aluguel ou documento que mostre a moradia',
+        'Núcleo de Habitação e Urbanismo da Defensoria Pública do Estado de São Paulo.',
+        'https://www.defensoria.sp.def.br');
+
+-- 3.8 Inscrições dos cidadãos nos programas (Habitação · perfil)
+INSERT INTO cl_inscricao_programa (id_cidadao, id_programa, status, protocolo, observacao, dt_inscricao, dt_atualizacao)
+SELECT c.id_cidadao, p.id_programa, 'EM_ANALISE', 'HAB-2026-048213', 'Entreguei os documentos no CRAS da Penha.', SYSDATE - 62, SYSDATE - 9
+  FROM cl_cidadao c, cl_programa_moradia p
+ WHERE c.email = 'ana.souza@exemplo.com' AND p.nome = 'Minha Casa Minha Vida · Faixa 1';
+INSERT INTO cl_inscricao_programa (id_cidadao, id_programa, status, protocolo, observacao, dt_inscricao, dt_atualizacao)
+SELECT c.id_cidadao, p.id_programa, 'INSCRITO', NULL, 'Simulação feita no aplicativo da Caixa.', SYSDATE - 4, SYSDATE - 4
+  FROM cl_cidadao c, cl_programa_moradia p
+ WHERE c.email = 'ana.souza@exemplo.com' AND p.nome = 'Reforma Casa Brasil';
+INSERT INTO cl_inscricao_programa (id_cidadao, id_programa, status, protocolo, observacao, dt_inscricao, dt_atualizacao)
+SELECT c.id_cidadao, p.id_programa, 'APROVADO', 'CX-77120-2026', 'Crédito aprovado. Falta a vistoria do imóvel.', SYSDATE - 40, SYSDATE - 6
+  FROM cl_cidadao c, cl_programa_moradia p
+ WHERE c.email = 'bruno.lima@exemplo.com' AND p.nome = 'Minha Casa Minha Vida · Faixas 2, 3 e 4';
+INSERT INTO cl_inscricao_programa (id_cidadao, id_programa, status, protocolo, observacao, dt_inscricao, dt_atualizacao)
+SELECT c.id_cidadao, p.id_programa, 'INSCRITO', NULL, NULL, SYSDATE - 15, SYSDATE - 15
+  FROM cl_cidadao c, cl_programa_moradia p
+ WHERE c.email = 'bruno.lima@exemplo.com' AND p.nome = 'Regularização fundiária (escritura do seu imóvel)';
+INSERT INTO cl_inscricao_programa (id_cidadao, id_programa, status, protocolo, observacao, dt_inscricao, dt_atualizacao)
+SELECT c.id_cidadao, p.id_programa, 'APROVADO', 'SEHAB-AA-2025-3391', 'Benefício ativo. Renovar o cadastro no próximo semestre.', SYSDATE - 180, SYSDATE - 30
+  FROM cl_cidadao c, cl_programa_moradia p
+ WHERE c.email = 'carla.mendes@exemplo.com' AND p.nome = 'Auxílio aluguel (aluguel social)';
+INSERT INTO cl_inscricao_programa (id_cidadao, id_programa, status, protocolo, observacao, dt_inscricao, dt_atualizacao)
+SELECT c.id_cidadao, p.id_programa, 'EM_ANALISE', 'CDM-2026-1184', NULL, SYSDATE - 21, SYSDATE - 3
+  FROM cl_cidadao c, cl_programa_moradia p
+ WHERE c.email = 'elisa.ferreira@exemplo.com' AND p.nome = 'Auxílio aluguel para mulheres em situação de violência';
+INSERT INTO cl_inscricao_programa (id_cidadao, id_programa, status, protocolo, observacao, dt_inscricao, dt_atualizacao)
+SELECT c.id_cidadao, p.id_programa, 'INSCRITO', NULL, 'Inscrição pelo site no período aberto em outubro.', SYSDATE - 28, SYSDATE - 28
+  FROM cl_cidadao c, cl_programa_moradia p
+ WHERE c.email = 'felipe.rocha@exemplo.com' AND p.nome = 'Programa de moradia da CDHU';
+
 COMMIT;
 
 
@@ -498,4 +750,8 @@ UNION ALL SELECT 'CL_ROTA', COUNT(*) FROM cl_rota
 UNION ALL SELECT 'CL_ROTA_VIA', COUNT(*) FROM cl_rota_via
 UNION ALL SELECT 'CL_ENDERECO', COUNT(*) FROM cl_endereco
 UNION ALL SELECT 'CL_FEIRA', COUNT(*) FROM cl_feira
-UNION ALL SELECT 'CL_CIDADAO_FEIRA', COUNT(*) FROM cl_cidadao_feira;
+UNION ALL SELECT 'CL_CIDADAO_FEIRA', COUNT(*) FROM cl_cidadao_feira
+UNION ALL SELECT 'CL_PONTO_APOIO', COUNT(*) FROM cl_ponto_apoio
+UNION ALL SELECT 'CL_CONTATO_EMERGENCIA', COUNT(*) FROM cl_contato_emergencia
+UNION ALL SELECT 'CL_PROGRAMA_MORADIA', COUNT(*) FROM cl_programa_moradia
+UNION ALL SELECT 'CL_INSCRICAO_PROGRAMA', COUNT(*) FROM cl_inscricao_programa;

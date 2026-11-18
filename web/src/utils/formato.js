@@ -27,6 +27,14 @@ export function formatarNumero(valor, casas = 0) {
   return Number(valor).toLocaleString("pt-BR", { minimumFractionDigits: casas, maximumFractionDigits: casas });
 }
 
+/** 850 → "850 m"; 2340 → "2,3 km". */
+export function formatarDistancia(metros) {
+  if (metros === null || metros === undefined) {
+    return "—";
+  }
+  return metros < 1000 ? `${Math.round(metros / 10) * 10} m` : `${formatarNumero(metros / 1000, 1)} km`;
+}
+
 /** 18 → "18 min"; 125 → "2 h 05 min". */
 export function formatarMinutos(minutos) {
   if (minutos === null || minutos === undefined) {

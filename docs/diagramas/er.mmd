@@ -1,5 +1,5 @@
 ---
-title: "Banco Oracle do Citizen Life: 6 tabelas"
+title: "Banco Oracle do Citizen Life: 10 tabelas"
 ---
 erDiagram
     CL_CIDADAO ||--o{ CL_ROTA : "salva"
@@ -7,6 +7,11 @@ erDiagram
     CL_ROTA ||--|{ CL_ROTA_VIA : "passa por"
     CL_VIA ||--o{ CL_ROTA_VIA : "faz parte de"
     CL_VIA ||--o{ CL_OCORRENCIA : "tem"
+    CL_CIDADAO ||--o{ CL_INSCRICAO_PROGRAMA : "registra"
+    CL_PROGRAMA_MORADIA ||--o{ CL_INSCRICAO_PROGRAMA : "recebe"
+    CL_CIDADAO ||--o{ CL_CONTATO_EMERGENCIA : "avisa"
+    CL_CIDADAO ||--o{ CL_CIDADAO_FEIRA : "favorita"
+    CL_FEIRA ||--o{ CL_CIDADAO_FEIRA : "é favorita de"
 
     CL_CIDADAO {
         NUMBER id_cidadao PK
@@ -56,4 +61,58 @@ erDiagram
         VARCHAR2 descricao
         NUMBER pos_x
         NUMBER pos_y
+    }
+    CL_PONTO_APOIO {
+        NUMBER id_ponto PK
+        VARCHAR2 nome UK
+        VARCHAR2 tipo "CHECK"
+        VARCHAR2 bairro
+        VARCHAR2 zona "CHECK"
+        VARCHAR2 telefone
+        CHAR aberto_24h "CHECK S/N"
+        VARCHAR2 abre "HH:MM, opcional"
+        VARCHAR2 fecha "HH:MM, opcional"
+        NUMBER pos_x
+        NUMBER pos_y
+    }
+    CL_CONTATO_EMERGENCIA {
+        NUMBER id_contato PK
+        NUMBER id_cidadao FK
+        VARCHAR2 nome "UK com id_cidadao"
+        VARCHAR2 telefone
+        VARCHAR2 parentesco "opcional"
+    }
+    CL_FEIRA {
+        NUMBER id_feira PK
+        VARCHAR2 nome
+        VARCHAR2 rua "UK com dia_semana"
+        VARCHAR2 zona "CHECK"
+        VARCHAR2 dia_semana "CHECK"
+        VARCHAR2 horario
+    }
+    CL_CIDADAO_FEIRA {
+        NUMBER id_cidadao PK,FK
+        NUMBER id_feira PK,FK
+    }
+    CL_PROGRAMA_MORADIA {
+        NUMBER id_programa PK
+        VARCHAR2 nome UK
+        VARCHAR2 tipo "CHECK"
+        VARCHAR2 canal "CHECK"
+        VARCHAR2 descricao
+        VARCHAR2 quem_tem_direito
+        NUMBER renda_maxima "opcional"
+        VARCHAR2 documentos
+        VARCHAR2 onde_inscrever
+        VARCHAR2 site
+    }
+    CL_INSCRICAO_PROGRAMA {
+        NUMBER id_inscricao PK
+        NUMBER id_cidadao FK
+        NUMBER id_programa FK
+        VARCHAR2 status "CHECK"
+        VARCHAR2 protocolo
+        VARCHAR2 observacao
+        DATE dt_inscricao
+        DATE dt_atualizacao
     }

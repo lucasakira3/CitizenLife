@@ -1,31 +1,39 @@
 package br.com.citizenlife.api;
 
-import br.com.citizenlife.exception.CitizenLifeException;
-import br.com.citizenlife.exception.ValidacaoException;
-import br.com.citizenlife.model.Cidadao;
-import br.com.citizenlife.model.Endereco;
-import br.com.citizenlife.model.Feira;
-import br.com.citizenlife.model.Ocorrencia;
-import br.com.citizenlife.model.Rota;
-import br.com.citizenlife.model.Via;
-import br.com.citizenlife.service.CidadaoService;
-import br.com.citizenlife.service.EnderecoService;
-import br.com.citizenlife.service.FeiraService;
-import br.com.citizenlife.service.OcorrenciaService;
-import br.com.citizenlife.service.RotaService;
-import com.sun.net.httpserver.HttpExchange;
-import com.sun.net.httpserver.HttpHandler;
-
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import com.sun.net.httpserver.HttpExchange;
+import com.sun.net.httpserver.HttpHandler;
+
+import br.com.citizenlife.exception.CitizenLifeException;
+import br.com.citizenlife.exception.ValidacaoException;
+import br.com.citizenlife.model.Cidadao;
+import br.com.citizenlife.model.ContatoEmergencia;
+import br.com.citizenlife.model.Endereco;
+import br.com.citizenlife.model.Feira;
+import br.com.citizenlife.model.InscricaoPrograma;
+import br.com.citizenlife.model.Ocorrencia;
+import br.com.citizenlife.model.PontoApoio;
+import br.com.citizenlife.model.ProgramaMoradia;
+import br.com.citizenlife.model.Rota;
+import br.com.citizenlife.model.Via;
+import br.com.citizenlife.service.CidadaoService;
+import br.com.citizenlife.service.EnderecoService;
+import br.com.citizenlife.service.FeiraService;
+import br.com.citizenlife.service.HabitacaoService;
+import br.com.citizenlife.service.OcorrenciaService;
+import br.com.citizenlife.service.RotaService;
+import br.com.citizenlife.service.SegurancaService;
 
 /**
  * A camada de interface: recebe as chamadas HTTP do site (React), chama a service certa e devolve JSON.
@@ -43,14 +51,19 @@ public class Servidor implements HttpHandler {
     private final EnderecoService enderecos;
     private final FeiraService feiras;
     private final OcorrenciaService ocorrencias;
+    private final SegurancaService seguranca;
+    private final HabitacaoService habitacao;
 
     public Servidor(CidadaoService cidadaos, RotaService rotas, EnderecoService enderecos,
-                    FeiraService feiras, OcorrenciaService ocorrencias) {
+                    FeiraService feiras, OcorrenciaService ocorrencias, SegurancaService seguranca,
+                    HabitacaoService habitacao) {
         this.cidadaos = cidadaos;
         this.rotas = rotas;
         this.enderecos = enderecos;
         this.feiras = feiras;
         this.ocorrencias = ocorrencias;
+        this.seguranca = seguranca;
+        this.habitacao = habitacao;
     }
 
     @Override
@@ -135,6 +148,57 @@ public class Servidor implements HttpHandler {
             case "POST /api/cidadaos/{id}/feiras" -> feira(feiras.favoritar(ids.get(0), longa(json, "idFeira"), ator));
             case "DELETE /api/cidadaos/{id}/feiras/{id}" -> {
                 feiras.desfavoritar(ids.get(0), ids.get(1), ator);
+                yield null;
+            }
+
+            // Segurança: onde pedir ajuda e contatos de emergência
+            case "GET /api/pontos-apoio" -> {
+                LocalTime agora = seguranca.agora();
+                yield seguranca.listarPontos(parametros.get("zona"), parametros.get("tipo"),
+                                "true".equals(parametros.get("abertoAgora")))
+                        .stream().map(p -> pontoApoio(p, agora)).toList();
+            }
+            case "GET /api/pontos-apoio/proximo" -> {
+                SegurancaService.PontoProximo proximo = seguranca.maisProximo(
+                        decimal(parametros, "x"), decimal(parametros, "y"), parametros.get("tipoOcorrencia"));
+                yield proximo == null ? null : pontoProximo(proximo, seguranca.agora());
+            }
+            case "GET /api/cidadaos/{id}/pontos-proximos" -> {
+                SegurancaService.Proximos proximos = seguranca.proximosDeCasa(ids.get(0), ator);
+                if (proximos == null) {
+                    yield null;
+                }
+                LocalTime agora = seguranca.agora();
+                Map<String, Object> mapa = new LinkedHashMap<>();
+                mapa.put("referencia", endereco(proximos.referencia()));
+                mapa.put("pontos", proximos.pontos().stream().map(item -> pontoProximo(item, agora)).toList());
+                yield mapa;
+            }
+            case "GET /api/cidadaos/{id}/contatos" ->
+                    seguranca.listarContatos(ids.get(0), ator).stream().map(this::contato).toList();
+            case "POST /api/cidadaos/{id}/contatos" -> contato(seguranca.criarContato(ids.get(0), lerContato(json), ator));
+            case "PUT /api/cidadaos/{id}/contatos/{id}" ->
+                    contato(seguranca.atualizarContato(ids.get(0), ids.get(1), lerContato(json), ator));
+            case "DELETE /api/cidadaos/{id}/contatos/{id}" -> {
+                seguranca.excluirContato(ids.get(0), ids.get(1), ator);
+                yield null;
+            }
+
+            // Habitação: programas de moradia (com o filtro de renda) e as inscrições do cidadão
+            case "GET /api/programas-moradia" -> {
+                Double renda = habitacao.lerRenda(parametros.get("renda"));
+                yield habitacao.listarProgramas(parametros.get("tipo"), renda).stream()
+                        .map(programa -> programa(programa, renda)).toList();
+            }
+            case "GET /api/programas-moradia/{id}" -> programa(habitacao.buscarPrograma(ids.get(0)), null);
+            case "GET /api/cidadaos/{id}/inscricoes" ->
+                    habitacao.listarInscricoes(ids.get(0), ator).stream().map(this::inscricao).toList();
+            case "POST /api/cidadaos/{id}/inscricoes" ->
+                    inscricao(habitacao.inscrever(ids.get(0), lerInscricao(json), ator));
+            case "PUT /api/cidadaos/{id}/inscricoes/{id}" ->
+                    inscricao(habitacao.atualizar(ids.get(0), ids.get(1), lerInscricao(json), ator));
+            case "DELETE /api/cidadaos/{id}/inscricoes/{id}" -> {
+                habitacao.excluir(ids.get(0), ids.get(1), ator);
                 yield null;
             }
 
@@ -225,6 +289,71 @@ public class Servidor implements HttpHandler {
         return mapa;
     }
 
+    /** O ponto de apoio com o "aberto agora" já calculado pelo Java. */
+    private Map<String, Object> pontoApoio(PontoApoio ponto, LocalTime agora) {
+        Map<String, Object> mapa = new LinkedHashMap<>();
+        mapa.put("id", ponto.getId());
+        mapa.put("nome", ponto.getNome());
+        mapa.put("tipo", ponto.getTipo());
+        mapa.put("bairro", ponto.getBairro());
+        mapa.put("zona", ponto.getZona());
+        mapa.put("telefone", ponto.getTelefone());
+        mapa.put("aberto24h", ponto.isAberto24h());
+        mapa.put("abre", ponto.getAbre());
+        mapa.put("fecha", ponto.getFecha());
+        mapa.put("abertoAgora", ponto.estaAberto(agora));
+        mapa.put("local", ponto(ponto.getBairro(), ponto.getX(), ponto.getY()));
+        return mapa;
+    }
+
+    /** O ponto de apoio com a distância até o local de referência. */
+    private Map<String, Object> pontoProximo(SegurancaService.PontoProximo item, LocalTime agora) {
+        Map<String, Object> mapa = pontoApoio(item.ponto(), agora);
+        mapa.put("distanciaMetros", item.distanciaMetros());
+        return mapa;
+    }
+
+    private Map<String, Object> contato(ContatoEmergencia contato) {
+        Map<String, Object> mapa = new LinkedHashMap<>();
+        mapa.put("id", contato.getId());
+        mapa.put("nome", contato.getNome());
+        mapa.put("telefone", contato.getTelefone());
+        mapa.put("telefoneDigitos", contato.getTelefoneDigitos());
+        mapa.put("parentesco", contato.getParentesco());
+        return mapa;
+    }
+
+    /** O programa com os documentos em lista. Com a renda informada, diz se ela atende ao teto do programa. */
+    private Map<String, Object> programa(ProgramaMoradia programa, Double renda) {
+        Map<String, Object> mapa = new LinkedHashMap<>();
+        mapa.put("id", programa.getId());
+        mapa.put("nome", programa.getNome());
+        mapa.put("tipo", programa.getTipo());
+        mapa.put("canal", programa.getCanal());
+        mapa.put("descricao", programa.getDescricao());
+        mapa.put("quemTemDireito", programa.getQuemTemDireito());
+        mapa.put("rendaMaxima", programa.getRendaMaxima());
+        mapa.put("documentos", programa.listaDocumentos());
+        mapa.put("ondeInscrever", programa.getOndeInscrever());
+        mapa.put("site", programa.getSite());
+        if (renda != null) {
+            mapa.put("compativel", programa.atendeRenda(renda));
+        }
+        return mapa;
+    }
+
+    private Map<String, Object> inscricao(InscricaoPrograma inscricao) {
+        Map<String, Object> mapa = new LinkedHashMap<>();
+        mapa.put("id", inscricao.getId());
+        mapa.put("programa", programa(inscricao.getPrograma(), null));
+        mapa.put("status", inscricao.getStatus());
+        mapa.put("protocolo", inscricao.getProtocolo());
+        mapa.put("observacao", inscricao.getObservacao());
+        mapa.put("dataInscricao", inscricao.getDataInscricao());
+        mapa.put("dataAtualizacao", inscricao.getDataAtualizacao());
+        return mapa;
+    }
+
     private Map<String, Object> ponto(String descricao, double x, double y) {
         Map<String, Object> mapa = new LinkedHashMap<>();
         mapa.put("descricao", descricao);
@@ -261,6 +390,25 @@ public class Servidor implements HttpHandler {
         return endereco;
     }
 
+    private ContatoEmergencia lerContato(Map<String, Object> json) {
+        ContatoEmergencia contato = new ContatoEmergencia();
+        contato.setNome(texto(json, "nome"));
+        contato.setTelefone(texto(json, "telefone"));
+        contato.setParentesco(texto(json, "parentesco"));
+        return contato;
+    }
+
+    private InscricaoPrograma lerInscricao(Map<String, Object> json) {
+        ProgramaMoradia programa = new ProgramaMoradia();
+        programa.setId(longa(json, "idPrograma"));
+        InscricaoPrograma inscricao = new InscricaoPrograma();
+        inscricao.setPrograma(programa);
+        inscricao.setStatus(texto(json, "status"));
+        inscricao.setProtocolo(texto(json, "protocolo"));
+        inscricao.setObservacao(texto(json, "observacao"));
+        return inscricao;
+    }
+
     private List<Long> idsVias(Map<String, Object> json) {
         List<Long> ids = new ArrayList<>();
         if (json.get("vias") instanceof List<?> lista) {
@@ -281,6 +429,15 @@ public class Servidor implements HttpHandler {
     /** Número do JSON; -1 quando o campo falta, para a service acusar o erro. */
     private double numero(Map<String, Object> json, String campo) {
         return json.get(campo) instanceof Number numero ? numero.doubleValue() : -1;
+    }
+
+    /** Número de um parâmetro da URL (?x=1044.3); NaN quando falta ou não é número, para a service acusar o erro. */
+    private double decimal(Map<String, String> parametros, String nome) {
+        try {
+            return Double.parseDouble(parametros.getOrDefault(nome, ""));
+        } catch (NumberFormatException e) {
+            return Double.NaN;
+        }
     }
 
     private long longa(Map<String, Object> json, String campo) {

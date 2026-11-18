@@ -24,6 +24,19 @@ classDiagram
     class OcorrenciaDao {
         +listar() List~Ocorrencia~
     }
+    class FeiraDao {
+        +listarPorZonaEDia(String, String) List~Feira~
+        +listarFavoritasPorCidadao(long) List~Feira~
+        +buscarHojePorCidadao(long, String) Optional~Feira~
+        +favoritar(long, long) void
+        +desfavoritar(long, long) boolean
+    }
+    class PontoApoioDao {
+        +listarPorZonaETipo(String, String) List~PontoApoio~
+    }
+    class ContatoEmergenciaDao {
+        +listarPorCidadao(long) List~ContatoEmergencia~
+    }
     class Conexao {
         <<final>>
         +abrir()$ Connection
@@ -33,7 +46,13 @@ classDiagram
     CrudDao <|.. CidadaoDao : T = Cidadao
     CrudDao <|.. RotaDao : T = Rota
     CrudDao <|.. EnderecoDao : T = Endereco
+    CrudDao <|.. FeiraDao : T = Feira
+    CrudDao <|.. PontoApoioDao : T = PontoApoio
+    CrudDao <|.. ContatoEmergenciaDao : T = ContatoEmergencia
     CidadaoDao ..> Conexao
     RotaDao ..> Conexao
     EnderecoDao ..> Conexao
     OcorrenciaDao ..> Conexao
+    FeiraDao ..> Conexao
+    PontoApoioDao ..> Conexao
+    ContatoEmergenciaDao ..> Conexao

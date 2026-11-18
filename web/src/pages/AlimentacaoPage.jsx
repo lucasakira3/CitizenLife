@@ -7,7 +7,7 @@ import { api } from "../services/api.js";
 
 export default function AlimentacaoPage() {
   useTitulo("Alimentação");
-  const { sessao } = useApp();
+  const { sessao, rotulo } = useApp();
   const feiras = useCarregar(() => api.buscar("/feiras"), []);
   const feiraHoje = useCarregar(() => (sessao ? api.buscar(`/cidadaos/${sessao.id}/feira-hoje`) : Promise.resolve(null)), [sessao?.id]);
 
@@ -57,7 +57,7 @@ export default function AlimentacaoPage() {
             <li key={feira.id} className="cartao-perfil">
               <div className="rotas-salvas__cabeca">
                 <span className="rotas-salvas__nome">{feira.rua}</span>
-                <span className="rotas-salvas__livre">{feira.dia}</span>
+                <span className="rotas-salvas__livre">{rotulo("diasSemana", feira.dia)}</span>
               </div>
               <p className="rotas-salvas__trajeto">{feira.nome}</p>
               <p className="rotas-salvas__meta">{feira.horario} · {feira.zona}</p>

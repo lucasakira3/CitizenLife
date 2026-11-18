@@ -7,7 +7,7 @@ import IntroAba from "./IntroAba.jsx";
 
 /** Alimentação › Minhas feiras: feiras favoritadas pelo cidadão. */
 export default function MinhasFeiras({ setAviso }) {
-  const { sessao } = useApp();
+  const { sessao, rotulo } = useApp();
   const favoritas = useCarregar(() => api.buscar(`/cidadaos/${sessao.id}/feiras`), [sessao.id]);
   const todas = useCarregar(() => api.buscar("/feiras"), []);
 
@@ -54,7 +54,7 @@ export default function MinhasFeiras({ setAviso }) {
           <li key={feira.id} className="cartao-perfil">
             <div className="rotas-salvas__cabeca">
               <span className="rotas-salvas__nome">{feira.rua}</span>
-              <span className="rotas-salvas__livre">{feira.dia}</span>
+              <span className="rotas-salvas__livre">{rotulo("diasSemana", feira.dia)}</span>
             </div>
             <p className="rotas-salvas__trajeto">{feira.nome}</p>
             <p className="rotas-salvas__meta">{feira.horario} · {feira.zona}</p>
@@ -78,7 +78,7 @@ export default function MinhasFeiras({ setAviso }) {
             <li key={feira.id} className="cartao-perfil">
               <div className="rotas-salvas__cabeca">
                 <span className="rotas-salvas__nome">{feira.rua}</span>
-                <span className="rotas-salvas__livre">{feira.dia}</span>
+                <span className="rotas-salvas__livre">{rotulo("diasSemana", feira.dia)}</span>
               </div>
               <p className="rotas-salvas__trajeto">{feira.nome}</p>
               <p className="rotas-salvas__meta">{feira.horario} · {feira.zona}</p>

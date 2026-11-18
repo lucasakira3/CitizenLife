@@ -13,7 +13,7 @@ import { navegar } from "../hooks/useRota.js";
 import { useTitulo } from "../hooks/useTitulo.js";
 import { api, consulta } from "../services/api.js";
 import { avisarNaProximaPagina } from "../services/aviso.js";
-import { formatarMinutos, formatarNumero } from "../utils/formato.js";
+import { formatarDistancia, formatarMinutos, formatarNumero } from "../utils/formato.js";
 import { carregarMapa } from "../utils/mapaCidade.js";
 import {
   calcularRota,
@@ -23,6 +23,7 @@ import {
   minutosPara,
   nomesDasVias,
   penalidadesDeRisco,
+  pontoDaViaNaRota,
   prepararBusca,
   trechosComRisco,
   viasNaRota,
@@ -41,6 +42,20 @@ function idDaUrl() {
   return Number.isInteger(id) && id > 0 ? id : null;
 }
 
+/**
+ * Destino pedido na URL (#/mobilidade/rota?destino=Nome&x=940.6&y=1108.3),
+ * quando o cidadão toca em "Ver no mapa" num ponto de apoio da Segurança.
+ */
+function destinoDaUrl() {
+  const busca = new URLSearchParams(window.location.hash.split("?")[1] ?? "");
+  const nome = busca.get("destino")?.trim();
+  const x = Number(busca.get("x"));
+  const y = Number(busca.get("y"));
+  return nome && busca.has("x") && busca.has("y") && Number.isFinite(x) && Number.isFinite(y)
+    ? { descricao: nome, x, y }
+    : null;
+}
+
 function piorNivel(alertas) {
   return alertas.reduce(
     (pior, alerta) => (!pior || ORDEM_RISCO[alerta.risco.nivel] > ORDEM_RISCO[pior.nivel] ? alerta.risco : pior),
@@ -53,9 +68,10 @@ export default function PlanejarRotaPage() {
   const { sessao, dominio, rotulo } = useApp();
   const cidadao = Boolean(sessao);
   const [idRota] = useState(idDaUrl);
+  const [destinoUrl] = useState(() => (idDaUrl() ? null : destinoDaUrl()));
 
   const [origem, setOrigem] = useState(null);
-  const [destino, setDestino] = useState(null);
+  const [destino, setDestino] = useState(destinoUrl);
   const [modal, setModal] = useState(sessao?.modal ?? "CARRO");
   const [criterio, setCriterio] = useState("SEGURA");
   const [marcando, setMarcando] = useState(null);
@@ -66,7 +82,9 @@ export default function PlanejarRotaPage() {
   const [resultado, setResultado] = useState(null); // { RAPIDA: {...}, SEGURA: {...} }
   const [calculando, setCalculando] = useState(false);
   const [erroRota, setErroRota] = useState(null);
-  const [aviso, setAviso] = useState(null);
+  const [aviso, setAviso] = useState(() =>
+    destinoUrl && !sessao ? { tipo: "info", texto: `Marque a saída para ver o caminho até ${destinoUrl.descricao}.` } : null,
+  );
 
   const [celular, setCelular] = useState(() => window.matchMedia(CELULAR).matches);
   const [painelAberto, setPainelAberto] = useState(true);
@@ -93,15 +111,25 @@ export default function PlanejarRotaPage() {
     };
   }, []);
 
-  // Endereços salvos no perfil (casa, trabalho...) viram atalhos para a saída e o destino
+  // Endereços salvos no perfil (casa, trabalho...) viram atalhos para a saída e o destino.
+  // Com destino vindo da URL, a saída começa na casa do cidadão.
   const [enderecos, setEnderecos] = useState([]);
   useEffect(() => {
     if (!cidadao) return;
     api
       .buscar(`/cidadaos/${sessao.id}/enderecos`)
-      .then(setEnderecos)
+      .then((lista) => {
+        setEnderecos(lista);
+        if (!destinoUrl) return;
+        const casa = lista.find((endereco) => endereco.tipo === "CASA");
+        if (casa) {
+          setOrigem((atual) => atual ?? { ...casa.local });
+        } else {
+          setAviso({ tipo: "info", texto: `Marque a saída para ver o caminho até ${destinoUrl.descricao}.` });
+        }
+      })
       .catch(() => setEnderecos([]));
-  }, [cidadao, sessao?.id]);
+  }, [cidadao, sessao?.id, destinoUrl]);
 
   /** Preenche a saída se ela estiver vazia; senão, o destino. */
   function usarEndereco(endereco) {
@@ -217,6 +245,47 @@ export default function PlanejarRotaPage() {
     [escolhida],
   );
 
+  // Segurança: para cada ocorrência de insegurança no caminho, o Java sugere o ponto policial
+  // (delegacia, PM ou Guarda Civil) mais perto do trecho da rota naquela via, de preferência aberto agora.
+  const [apoios, setApoios] = useState({}); // { idOcorrencia: pontoDeApoio }
+  const [pontoAtivo, setPontoAtivo] = useState(null);
+  useEffect(() => {
+    setApoios({});
+    setPontoAtivo(null);
+    if (!escolhida || !base) return undefined;
+    const inseguras = escolhida.alertas.filter((alerta) => alerta.tipo === "INSEGURANCA");
+    if (!inseguras.length) return undefined;
+    let ativo = true;
+    Promise.all(
+      inseguras.map(async (alerta) => {
+        const local = pontoDaViaNaRota(escolhida.rota, alerta.via, base.nomesPorVia);
+        if (!local) return null;
+        const ponto = await api.buscar(`/pontos-apoio/proximo${consulta({ x: local.x.toFixed(2), y: local.y.toFixed(2), tipoOcorrencia: alerta.tipo })}`);
+        return ponto ? [alerta.id, ponto] : null;
+      }),
+    )
+      .then((pares) => ativo && setApoios(Object.fromEntries(pares.filter(Boolean))))
+      .catch(() => ativo && setApoios({}));
+    return () => {
+      ativo = false;
+    };
+  }, [escolhida, base]);
+
+  // Um mesmo ponto pode ser sugerido para duas ocorrências: no mapa ele aparece uma vez só
+  const pontosSugeridos = useMemo(() => {
+    const unicos = new Map(Object.values(apoios).map((ponto) => [ponto.id, ponto]));
+    return unicos.size ? [...unicos.values()] : null;
+  }, [apoios]);
+
+  const verPontoNoMapa = useCallback(
+    (id) => {
+      setPontoAtivo(id);
+      const ponto = pontosSugeridos?.find((item) => item.id === id);
+      if (ponto) refMapa.current?.focarPonto(ponto.local.x, ponto.local.y);
+    },
+    [pontosSugeridos],
+  );
+
   const aoClicarNoChao = useCallback(
     (x, y) => {
       if (!marcando || !base) return;
@@ -253,6 +322,9 @@ export default function PlanejarRotaPage() {
         aoClicarNoChao={marcando ? aoClicarNoChao : undefined}
         rotuloRegiao="Mapa de São Paulo com a rota calculada. Arraste para mover e use a roda ou a pinça para aproximar."
         folga={folga}
+        pontosApoio={pontosSugeridos}
+        pontoAtivo={pontoAtivo}
+        aoEscolherPonto={verPontoNoMapa}
       />
       {marcando && (
         <p className="rota-tela__marcando" role="status">
@@ -370,6 +442,8 @@ export default function PlanejarRotaPage() {
                 aoEscolher={setCriterio}
                 modal={modal}
                 rotulo={rotulo}
+                apoios={apoios}
+                aoVerPonto={verPontoNoMapa}
               />
             )
           )}
@@ -402,7 +476,31 @@ export default function PlanejarRotaPage() {
 
 // ---------------------------------------------------------------- resultado
 
-function Resultado({ resultado, criterio, aoEscolher, modal, rotulo }) {
+/** Ponto de apoio mais perto de uma ocorrência de insegurança no caminho (pilar Segurança). */
+function ApoioSugerido({ ponto, rotulo, aoVer }) {
+  const horario = ponto.aberto24h ? "24 horas" : `${ponto.abre} às ${ponto.fecha}`;
+  return (
+    <div className="apoio-sugerido">
+      <p className="apoio-sugerido__rotulo">
+        <Icone nome="SEGURANCA" tamanho={14} />
+        Ajuda mais perto deste trecho
+      </p>
+      <button type="button" className="apoio-sugerido__nome" onClick={aoVer} title="Ver no mapa">
+        {ponto.nome}
+      </button>
+      <p className="apoio-sugerido__meta">
+        {rotulo("tiposPontoApoio", ponto.tipo)} · {formatarDistancia(ponto.distanciaMetros)} ·{" "}
+        {ponto.abertoAgora ? `aberto agora (${horario})` : `fechado agora (${horario})`}
+      </p>
+      <a className="botao botao--secundario botao--pequeno" href={`tel:${ponto.telefone}`}>
+        <Icone nome="TELEFONE" tamanho={16} />
+        Ligar {ponto.telefone}
+      </a>
+    </div>
+  );
+}
+
+function Resultado({ resultado, criterio, aoEscolher, modal, rotulo, apoios, aoVerPonto }) {
   const escolhida = resultado[criterio];
   const frase = MODAL_FRASE[modal];
   const evitadas = resultado.RAPIDA.alertas.length - resultado.SEGURA.alertas.length;
@@ -476,6 +574,9 @@ function Resultado({ resultado, criterio, aoEscolher, modal, rotulo }) {
                 <div className="lista-placas">
                   <PlacaVia via={alerta.via} semRegiao />
                 </div>
+                {apoios[alerta.id] && (
+                  <ApoioSugerido ponto={apoios[alerta.id]} rotulo={rotulo} aoVer={() => aoVerPonto(apoios[alerta.id].id)} />
+                )}
               </div>
             </li>
           ))}

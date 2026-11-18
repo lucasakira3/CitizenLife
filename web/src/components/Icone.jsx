@@ -247,6 +247,42 @@ const DESENHOS = {
       <path d="M12 7.5V12l3 2" />
     </>
   ),
+  TELEFONE: (
+    <path d="M5 4h3.5l1.5 4.5-2.2 1.4a11 11 0 0 0 6.3 6.3l1.4-2.2L20 15.5V19a1.5 1.5 0 0 1-1.6 1.5A16 16 0 0 1 3.5 5.6 1.5 1.5 0 0 1 5 4z" />
+  ),
+
+  // ------------------------------------------------------------- habitação
+  CHAVE: (
+    <>
+      <circle cx="8" cy="15" r="4" />
+      <path d="M10.9 12.1L20 3M16 7l3 3M13.5 9.5l2 2" />
+    </>
+  ),
+  DOCUMENTO: (
+    <>
+      <path d="M6 3h8l4 4v14H6z" />
+      <path d="M14 3v4h4M9 12h6M9 16h6" />
+    </>
+  ),
+  TIJOLOS: (
+    <>
+      <rect x="3" y="5" width="18" height="14" rx="1.5" />
+      <path d="M3 12h18M9 5v7M15 12v7" />
+    </>
+  ),
+  CHECK: <path d="M5 12.5l4.5 4.5L19 7.5" />,
+  EXTERNO: (
+    <>
+      <path d="M14 4h6v6M20 4l-9 9" />
+      <path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" />
+    </>
+  ),
+  TELA: (
+    <>
+      <rect x="3" y="4" width="18" height="12" rx="2" />
+      <path d="M8 20h8M12 16v4" />
+    </>
+  ),
 };
 
 /** Ícone decorativo. O texto ao lado é quem dá o significado para leitores de tela. */

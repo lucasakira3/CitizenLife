@@ -94,10 +94,20 @@
 }
 
 .hub-resumo__lista li {
+  border-top: 1px solid var(--linha);
+}
+
+.hub-resumo__lista a {
   display: grid;
   gap: 0.15rem;
   padding: 0.7rem 0;
-  border-top: 1px solid var(--linha);
+  color: inherit;
+  text-decoration: none;
+}
+
+.hub-resumo__lista a:hover strong,
+.hub-resumo__lista a:focus-visible strong {
+  color: var(--placa);
 }
 
 .hub-resumo__lista strong {

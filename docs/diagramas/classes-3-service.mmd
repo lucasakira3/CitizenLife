@@ -31,6 +31,26 @@ classDiagram
         +noCaminho(List~Long~ idsVias, String modal) List~Ocorrencia~
         +alertas(Cidadao) List~Ocorrencia~
     }
+    class FeiraService {
+        +listar(zona, dia) List~Feira~
+        +listarFavoritas(idCidadao, idAtor) List~Feira~
+        +favoritar(idCidadao, idFeira, idAtor) Feira
+        +desfavoritar(idCidadao, idFeira, idAtor) void
+        +hoje(idCidadao, idAtor) Feira
+    }
+    class SegurancaService {
+        +int MAXIMO_CONTATOS$
+        +int QUANTIDADE_PROXIMOS$
+        +Set~String~ TIPOS_POLICIAIS$
+        +listarPontos(zona, tipo, soAbertos) List~PontoApoio~
+        +proximosDeCasa(idCidadao, idAtor) Proximos
+        +maisProximo(x, y, tipoOcorrencia) PontoProximo
+        +agora() LocalTime
+        +listarContatos(idCidadao, idAtor) List~ContatoEmergencia~
+        +criarContato(idCidadao, ContatoEmergencia, idAtor) ContatoEmergencia
+        +atualizarContato(idCidadao, idContato, ContatoEmergencia, idAtor) ContatoEmergencia
+        +excluirContato(idCidadao, idContato, idAtor) void
+    }
     RotaService --> CidadaoService : exigirDono
     EnderecoService --> CidadaoService : exigirDono
     CidadaoService --> CidadaoDao
@@ -38,3 +58,9 @@ classDiagram
     EnderecoService --> EnderecoDao
     OcorrenciaService --> OcorrenciaDao
     OcorrenciaService --> RotaDao
+    FeiraService --> CidadaoService : exigirDono
+    FeiraService --> FeiraDao
+    SegurancaService --> CidadaoService : exigirDono
+    SegurancaService --> PontoApoioDao
+    SegurancaService --> ContatoEmergenciaDao
+    SegurancaService --> EnderecoDao : casa do cidadão

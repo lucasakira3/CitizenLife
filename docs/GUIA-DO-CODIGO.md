@@ -9,9 +9,11 @@ Este guia é para o grupo estudar o projeto antes da entrega e da apresentação
 - A **página inicial** é um hub com seis pilares da vida na cidade (mobilidade, lazer, alimentação, segurança, educação e habitação). Cada card leva a uma primeira consulta.
 - O pilar de **mobilidade** está pronto. O cidadão digita a saída e o destino, escolhe o modal (carro, moto, ônibus, app, a pé, bike) e recebe a rota mais rápida e a mais segura, com o **risco** de cada ocorrência no caminho calculado para aquele modal. O **mapa de riscos** mostra todas as ocorrências da cidade.
 - Com uma conta, o cidadão salva as rotas do dia a dia e recebe alerta quando surge, numa via da rota, uma ocorrência cujo risco para o seu modal passa de 4.
-- Os outros cinco pilares mostram uma página "em breve" com o que a primeira consulta vai trazer.
+- O pilar de **alimentação** lista as feiras livres por zona e dia; com conta, o cidadão favorita feiras e vê se tem feira favorita hoje.
+- O pilar de **segurança** mostra os telefones de emergência, os pontos de apoio (delegacias, PM, Guarda Civil, saúde 24h, acolhimento) com filtro por zona e tipo e o selo "aberto agora", os 3 mais perto da casa do cidadão e, no perfil, os contatos de emergência.
+- Os outros três pilares (educação, habitação e lazer) mostram uma página "em breve" com o que a primeira consulta vai trazer.
 
-O CRUD é em Java com JDBC no Oracle: o do cidadão (cadastro, editar, excluir a conta), o das rotas (salvar, listar, abrir, renomear, excluir) e o dos endereços. São **20 classes** e **6 tabelas**: o projeto foi enxugado de propósito para ser fácil de explicar. O React só mostra e envia dados: as regras ficam no Java.
+O CRUD é em Java com JDBC no Oracle: o do cidadão (cadastro, editar, excluir a conta), o das rotas (salvar, listar, abrir, renomear, excluir), o dos endereços, o das feiras favoritas e o dos contatos de emergência. São **28 classes** e **10 tabelas**: o projeto foi enxugado de propósito para ser fácil de explicar. O React só mostra e envia dados: as regras ficam no Java.
 
 ---
 
@@ -33,7 +35,7 @@ Exemplo: a Ana (moto) salva a rota "Casa para o trabalho".
 
 ## 3. Backend, pacote por pacote
 
-São 20 classes em 6 pacotes. Os diagramas estão em `docs/` (visão geral e uma página por camada).
+São 28 classes em 6 pacotes. Os diagramas estão em `docs/` (visão geral e uma página por camada).
 
 ### `model`: os dados
 
@@ -44,12 +46,15 @@ São 20 classes em 6 pacotes. Os diagramas estão em `docs/` (visão geral e uma
 | `Ocorrencia` | Problema numa via (alagamento, acidente...). Guarda os pesos de cada tipo e a matriz de exposição de cada modal. `calcularRisco(modal)` é a fórmula do projeto e `nivel(risco)` diz a faixa (baixo, moderado, alto, crítico). |
 | `Rota` | Rota salva: saída e destino (nome e posição no mapa), distância e a lista ordenada de vias que ela percorre. `passaPor(idVia)` é usado nos alertas. |
 | `Endereco` | Casa, trabalho, estudo ou outro, com apelido e posição. `isTipoUnico()` diz que casa e trabalho só podem aparecer uma vez. |
+| `Feira` | Feira livre: nome, rua, zona, dia da semana e horário. |
+| `PontoApoio` | Onde pedir ajuda: tipo (delegacia, PM, Guarda Civil, saúde 24h, acolhimento), bairro, zona, telefone, horário e posição no mapa. `estaAberto(agora)` diz se está aberto (inclusive quem vira a noite, como 22:00 às 06:00; horário ilegível conta como fechado). `distanciaMetrosAte(x, y)` mede a distância em linha reta (1 unidade do mapa = 25 m). |
+| `ContatoEmergencia` | Pessoa que o cidadão quer avisar: nome, telefone e parentesco (opcional). `getTelefoneDigitos()` tira a máscara, para validar e para o link `tel:`. |
 
 Os tipos (modal, tipo de ocorrência, tipo de endereço) são `String` conferidas contra listas fixas no Java e um `CHECK` no Oracle: menos classes e o mesmo resultado.
 
 ### `dao`: SQL e JDBC
 
-- `CrudDao<T>` é a interface do CRUD (`inserir`, `listar`, `buscarPorId`, `atualizar`, `excluir`), implementada por `CidadaoDao`, `RotaDao` e `EnderecoDao`. `OcorrenciaDao` só lista (com JOIN na via), e `RotaDao.listarVias()` atende o mapa.
+- `CrudDao<T>` é a interface do CRUD (`inserir`, `listar`, `buscarPorId`, `atualizar`, `excluir`), implementada por `CidadaoDao`, `RotaDao`, `EnderecoDao`, `FeiraDao`, `PontoApoioDao` e `ContatoEmergenciaDao`. `FeiraDao` também grava as favoritas (`CL_CIDADAO_FEIRA`) e `PontoApoioDao.listarPorZonaETipo` monta o `WHERE` só com os filtros informados. `OcorrenciaDao` só lista (com JOIN na via), e `RotaDao.listarVias()` atende o mapa.
 - Todo acesso usa `try-with-resources` (a conexão, o `PreparedStatement` e o `ResultSet` fecham sozinhos) e `PreparedStatement` com `?` (sem concatenar valores do usuário no SQL, o que evita SQL injection).
 - Salvar ou editar uma rota mexe em duas tabelas, então o `RotaDao` desliga o auto-commit, grava `CL_ROTA` e `CL_ROTA_VIA` e faz `commit` ou `rollback`.
 - `Conexao` abre a conexão (lendo as variáveis de ambiente ou o `db.properties`) e traduz o erro do Oracle em mensagem clara. Exemplo: `ORA-00001` na constraint `UK_CL_ROTA_NOME` vira "Você já tem uma rota com este nome."
@@ -61,6 +66,8 @@ Os tipos (modal, tipo de ocorrência, tipo de endereço) são `String` conferida
 | `CidadaoService` | Cadastro simples (nome, e-mail e senha), login (confere o hash PBKDF2; a senha nunca é gravada), edição e exclusão. `exigirDono` confere se há alguém logado e se a conta é dele; as outras services usam esse método. |
 | `RotaService` | CRUD das rotas: valida nome, saída, destino, distância e as vias do caminho; máximo de 10 rotas por cidadão. |
 | `EnderecoService` | CRUD dos endereços: apelido único, casa e trabalho no máximo uma vez cada, no máximo 10 endereços. |
+| `FeiraService` | Lista as feiras com filtro de zona e dia, favorita e remove feiras do cidadão e acha a feira favorita do dia de hoje. |
+| `SegurancaService` | Lista os pontos de apoio (zona e tipo validados; "aberto agora" pelo horário de `America/Sao_Paulo`), acha os 3 mais perto da casa do cidadão (ou do primeiro endereço salvo), acha o mais perto de um local do mapa (`maisProximo`: prefere um aberto agora e, para ocorrência de insegurança, só aceita os `TIPOS_POLICIAIS`, porque a ajuda certa para furto ou trecho escuro é a polícia, não um pronto-socorro) e faz o CRUD dos contatos de emergência: nome de 2 a 60 letras sem repetir, telefone com 8 a 13 dígitos e no máximo 5 contatos. |
 | `OcorrenciaService` | Lista as ocorrências com o risco para o modal (da maior para a menor), avalia um caminho antes de salvar (`noCaminho`) e monta os alertas: as ocorrências que estão em alguma via das rotas do cidadão. |
 
 ### `api`: a porta HTTP
@@ -82,8 +89,9 @@ O `main`: cria os objetos na ordem DAO, depois Service, depois Servidor, passand
 ## 4. Banco de dados
 
 - **Prefixo `CL_`**: o usuário Oracle da FIAP é usado em várias disciplinas. O prefixo evita apagar ou colidir com uma tabela de outro trabalho.
-- **6 tabelas:** `CL_CIDADAO`, `CL_VIA`, `CL_OCORRENCIA`, `CL_ROTA`, `CL_ROTA_VIA` e `CL_ENDERECO`. A associativa N:N é `CL_ROTA_VIA`, com a ordem da via no caminho. Cada ocorrência fica em uma via (N:1).
-- **`ON DELETE CASCADE`** só onde faz sentido apagar junto: as rotas e os endereços de um cidadão que exclui a conta, e as vias de uma rota excluída.
+- **10 tabelas:** `CL_CIDADAO`, `CL_VIA`, `CL_OCORRENCIA`, `CL_ROTA`, `CL_ROTA_VIA`, `CL_ENDERECO`, `CL_FEIRA`, `CL_CIDADAO_FEIRA`, `CL_PONTO_APOIO` e `CL_CONTATO_EMERGENCIA`. As associativas N:N são `CL_ROTA_VIA` (com a ordem da via no caminho) e `CL_CIDADAO_FEIRA` (as feiras favoritas). Cada ocorrência fica em uma via (N:1) e cada contato de emergência é de um cidadão (N:1).
+- **`CL_PONTO_APOIO`** usa um `CHECK` composto: quem não abre 24 horas (`aberto_24h = 'N'`) precisa ter `abre` e `fecha`. A posição (`pos_x`, `pos_y`) está no mesmo sistema do mapa e de `CL_ENDERECO`, por isso dá para medir a distância até a casa do cidadão.
+- **`ON DELETE CASCADE`** só onde faz sentido apagar junto: as rotas, os endereços, as feiras favoritas e os contatos de um cidadão que exclui a conta, e as vias de uma rota excluída.
 - **Dados de demonstração** com datas relativas (`SYSDATE - 3/24` é três horas atrás), para a demo parecer sempre atual.
 
 ---
@@ -98,7 +106,9 @@ O `main`: cria os objetos na ordem DAO, depois Service, depois Servidor, passand
 | `components/Logo.jsx` | A marca: o cidadão de braços abertos (SVG próprio), usado no cabeçalho, no rodapé e na página inicial. |
 | `pages/InicioPage.jsx` | O hub: o painel de abertura com o cidadão no centro e os seis pilares em órbita (posicionados com `rotate` e `translateX` em CSS) e os seis cards. Mobilidade aparece em destaque, como "Disponível". |
 | `pages/MobilidadePage.jsx` | As duas consultas do pilar (Planejar rota e Mapa de riscos) e a regra do risco. |
-| `pages/EmBrevePage.jsx` | Página dos pilares que ainda não têm consulta (`/lazer`, `/alimentacao`...). Um caminho que não é pilar cai na página "não encontrada". |
+| `pages/AlimentacaoPage.jsx` | Pilar Alimentação: a feira favorita de hoje (com conta) e as feiras disponíveis. |
+| `pages/SegurancaPage.jsx` | Pilar Segurança: a faixa com os telefones de emergência (links `tel:`), os 3 pontos de apoio mais perto de casa e a lista com filtros de zona, tipo e "aberto agora". Os filtros viram parâmetros da URL da API (`consulta()` em `services/api.js`); o Java é quem filtra e calcula o "aberto agora". |
+| `pages/EmBrevePage.jsx` | Página dos pilares que ainda não têm consulta (`/lazer`, `/educacao`, `/habitacao`). Um caminho que não é pilar cai na página "não encontrada". |
 | `hooks/useRota.js` | Navegação por hash (`#/mobilidade`), sem biblioteca de rotas. |
 | `hooks/useCarregar.js` | Busca dados e guarda `carregando`, `erro` e `dados`. |
 | `hooks/useFormulario.js` | Valores, erros por campo, envio e exibição dos erros vindos do Java. |
@@ -106,20 +116,21 @@ O `main`: cria os objetos na ordem DAO, depois Service, depois Servidor, passand
 | `components/Layout.jsx` | Cabeçalho com os seis pilares e rodapé, iguais em todas as páginas. |
 | `components/PlacaVia.jsx` | Mostra a via como uma placa de rua, com a zona. |
 | `components/SinalRisco.jsx` | Mostra o risco como uma placa de advertência (losango) colorida pela faixa. |
-| `components/MapaCidade.jsx` | O mapa. Carrega os dados da cidade, desenha o chão num `<canvas>` e põe por cima as placas 3D das ocorrências (HTML + CSS 3D), cada uma na via atingida, na cor do risco. Destaca as vias atingidas e, na página de rotas, desenha a rota calculada e os marcadores A e B. |
+| `components/MapaCidade.jsx` | O mapa. Carrega os dados da cidade, desenha o chão num `<canvas>` e põe por cima as placas 3D das ocorrências (HTML + CSS 3D), cada uma na via atingida, na cor do risco. Destaca as vias atingidas e, na página de rotas, desenha a rota calculada e os marcadores A e B. Quando a página manda `pontosApoio`, desenha também os pinos dos pontos de apoio (`PinoApoio`, com a mesma técnica de *billboard* das placas). |
 | `utils/mapaCidade.js` | Carrega `public/mapa/sao-paulo.json`, decodifica as linhas e monta o índice de ruas por nome. É por esse índice que uma via do banco ("Avenida Paulista") acha o seu traçado; a comparação ignora acentos, títulos ("Doutor", "Professor") e o que vem entre parênteses ("Marginal Tietê (Expressa)"). |
 | `utils/desenhoMapa.js` | Desenha o mapa a cada quadro, como um app de mapa: chão, verde, água, trilhos, ruas (da menor para a maior), vias com ocorrência, prédios em 3D e os nomes, escolhidos para não se sobreporem. |
 | `utils/projecao.js` | As contas da perspectiva (`projetar` e `desprojetar`), usadas pela câmera e pelo desenho. |
 | `scripts/gerar-mapa.mjs` | Script que baixa os dados do OpenStreetMap (Overpass API), projeta as coordenadas, emenda os trechos de cada rua, simplifica as linhas e grava o arquivo do mapa e a rede de ruas para as rotas. Só roda quando alguém quer atualizar o mapa; o site não depende dele. |
 | `utils/rotas.js` | O cálculo de rotas: carrega a rede (`public/mapa/sao-paulo-rotas.json`), acha o cruzamento mais próximo de um ponto, roda o A\*, descobre quais vias do banco a rota percorre, monta as penalidades da rota mais segura e faz a busca de ruas e bairros. |
-| `pages/PlanejarRotaPage.jsx` | Página Planejar rota: saída e destino (`components/CampoLugar.jsx`, com sugestões e marcação no mapa), modal, as opções mais rápida e mais segura lado a lado, as ocorrências no caminho e o formulário para salvar. |
-| `pages/PerfilPage.jsx` | O perfil, no estilo das contas de loja on-line: barra lateral (Minha conta e uma linha por pilar) e o conteúdo ao centro; dentro do pilar, as funções ficam em abas. O caminho escolhe o que abrir: `#/perfil`, `#/perfil/dados`, `#/perfil/<pilar>` (abre a primeira aba) e `#/perfil/mobilidade/rotas`, `.../locomocao` ou `.../enderecos`. Os pilares em breve mostram as abas futuras desativadas. |
-| `components/perfil/*` | As seções do perfil: `ResumoConta` (cartão do cidadão e três números), `DadosConta`, `MinhasRotas` (alertas e CRUD das rotas), `Locomocao` (cards de modal: um clique escolhe e já salva) e `Enderecos` (CRUD dos endereços, usando o mesmo `CampoLugar` da tela de rotas). |
+| `pages/PlanejarRotaPage.jsx` | Página Planejar rota: saída e destino (`components/CampoLugar.jsx`, com sugestões e marcação no mapa), modal, as opções mais rápida e mais segura lado a lado, as ocorrências no caminho e o formulário para salvar. Para cada ocorrência de insegurança da rota escolhida, acha onde o caminho passa pela via (`pontoDaViaNaRota`, em `utils/rotas.js`), pede ao Java o ponto policial mais próximo (`GET /api/pontos-apoio/proximo`) e mostra a sugestão embaixo da ocorrência e como pino no mapa. |
+| `pages/PerfilPage.jsx` | O perfil, no estilo das contas de loja on-line: barra lateral (Minha conta e uma linha por pilar) e o conteúdo ao centro; dentro do pilar, as funções ficam em abas. O caminho escolhe o que abrir: `#/perfil`, `#/perfil/dados`, `#/perfil/<pilar>` (abre a primeira aba) e `#/perfil/mobilidade/rotas`, `.../locomocao` ou `.../enderecos`, `#/perfil/alimentacao/feiras` e `#/perfil/seguranca/contatos`. Os pilares em breve mostram as abas futuras desativadas. |
+| `components/perfil/*` | As seções do perfil: `ResumoConta` (cartão do cidadão e três números), `DadosConta`, `MinhasRotas` (alertas e CRUD das rotas), `Locomocao` (cards de modal: um clique escolhe e já salva), `Enderecos` (CRUD dos endereços, usando o mesmo `CampoLugar` da tela de rotas), `MinhasFeiras` (favoritar e remover feiras) e `MeusContatos` (CRUD dos contatos de emergência). |
 | `hooks/useCameraMapa.js` | A câmera do mapa: arrastar, roda e pinça para zoom, botão direito ou dois dedos para girar, teclado, voos animados com `requestAnimationFrame` e enquadramento automático. A cada quadro escreve a câmera em variáveis CSS (para as placas) e redesenha o canvas, sem re-renderizar o React. |
-| `pages/MapaPage.jsx` | Página Mapa de riscos em tela cheia: painel com o seletor de modal, a lista de ocorrências (clicar voa até a placa) e o detalhe da ocorrência escolhida. Aceita `?ocorrencia=3` na URL, que é como os alertas abrem o mapa já na ocorrência. No celular o painel vira uma gaveta. |
-| `components/Icone.jsx` | Ícones próprios em SVG para os 6 pilares, os 7 tipos de ocorrência e os 6 modais. |
+| `pages/MapaPage.jsx` | Página Mapa de riscos em tela cheia: painel com o seletor de modal, a lista de ocorrências (clicar voa até a placa) e o detalhe da ocorrência escolhida. Aceita `?ocorrencia=3` na URL, que é como os alertas abrem o mapa já na ocorrência. O botão "Mostrar pontos de apoio" liga a camada do pilar Segurança (os pontos só são buscados na primeira vez); clicar num pino voa até ele e mostra o detalhe com o botão de ligar. No celular o painel vira uma gaveta. |
+| `components/Icone.jsx` | Ícones próprios em SVG para os 6 pilares, os 7 tipos de ocorrência, os 6 modais e os de interface (telefone, relógio, pin...). |
 | `styles/base.css` | Os tokens da paleta (cores, fontes, raios e sombras) e a estrutura da página. |
 | `styles/hub.css` | O painel de abertura com a órbita, os cards dos pilares, o cabeçalho de cada pilar (tingido com a cor dele, definida em `--pilar-*` no `base.css`) e a página "em breve". |
+| `styles/seguranca.css` | A faixa de emergência, os filtros em chips, os cartões dos pontos de apoio e os contatos. |
 | `styles/movimento.css`, `styles/mapa.css` e `styles/rota.css` | Animações de entrada e troca de página (View Transitions API), o visual do mapa (placas 3D com espessura, poste e sombra, painel lateral e controles) e o painel de rotas. |
 
 ### Como o mapa funciona (sem biblioteca)

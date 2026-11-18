@@ -1,0 +1,368 @@
+/* ------------------------------------------------------------- Pilar Segurança */
+
+/* Faixa dos telefones de emergência: sempre no topo, cada número é um botão de ligar */
+.emergencia {
+  margin: 0 0 1.4rem;
+  padding: 1.1rem 1.25rem 1.25rem;
+  border-radius: 16px;
+  background: var(--asfalto);
+  color: #fff;
+}
+
+.emergencia__titulo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 0 0.85rem;
+  font-size: 1.1rem;
+  color: #fff;
+}
+
+.emergencia__numeros {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 132px), 1fr));
+  gap: 0.6rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.emergencia__numero {
+  display: grid;
+  gap: 0.1rem;
+  min-height: 44px;
+  padding: 0.6rem 0.8rem;
+  border-radius: var(--raio-grande);
+  background: var(--asfalto-2);
+  color: #fff;
+  text-decoration: none;
+  transition: background-color 0.15s ease;
+}
+
+.emergencia__numero:hover,
+.emergencia__numero:focus-visible {
+  background: var(--pilar-seguranca);
+}
+
+.emergencia__digitos {
+  font-family: var(--fonte-dado);
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.emergencia__rotulo {
+  font-size: 0.85rem;
+  opacity: 0.85;
+}
+
+/* Filtros por zona e por tipo */
+.filtros-seguranca {
+  display: grid;
+  gap: 0.6rem;
+  margin: 0 0 0.9rem;
+}
+
+.filtro-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.filtro-chips button {
+  min-height: 36px;
+  padding: 0.2rem 0.8rem;
+  border: 1.5px solid var(--linha-forte);
+  border-radius: 999px;
+  background: var(--papel);
+  color: var(--texto);
+  font-family: var(--fonte-titulo);
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.filtro-chips button:hover {
+  border-color: var(--asfalto);
+}
+
+.filtro-chips button[aria-pressed="true"] {
+  border-color: var(--pilar-seguranca);
+  background: var(--pilar-seguranca);
+  color: #fff;
+}
+
+.filtro-aberto {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 36px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.filtro-aberto input {
+  width: 1.15rem;
+  height: 1.15rem;
+  accent-color: var(--pilar-seguranca);
+}
+
+.filtro-conta {
+  margin: 0 0 0.6rem;
+  font-size: 0.85rem;
+  color: var(--texto-suave);
+}
+
+/* Cartão de um ponto de apoio */
+.ponto-apoio {
+  display: grid;
+  gap: 0.4rem;
+  height: 100%;
+}
+
+.ponto-apoio__cabeca {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 0.75rem;
+  align-items: start;
+  margin-bottom: 0.2rem;
+}
+
+.ponto-apoio__icone {
+  --cor-tipo: var(--pilar-seguranca);
+  display: grid;
+  place-items: center;
+  width: 2.6rem;
+  height: 2.6rem;
+  border-radius: 12px;
+  background: var(--cor-tipo);
+  color: #fff;
+}
+
+.ponto-apoio__icone--DELEGACIA_MULHER { --cor-tipo: var(--pilar-educacao); }
+.ponto-apoio__icone--POLICIA_MILITAR { --cor-tipo: var(--asfalto-2); }
+.ponto-apoio__icone--GUARDA_MUNICIPAL { --cor-tipo: var(--pilar-lazer); }
+.ponto-apoio__icone--SAUDE_24H { --cor-tipo: var(--risco-CRITICO); }
+.ponto-apoio__icone--ACOLHIMENTO { --cor-tipo: var(--pilar-habitacao); }
+
+.ponto-apoio__tipo {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--texto-suave);
+}
+
+.ponto-apoio__nome {
+  margin: 0.1rem 0 0;
+  font-size: 1.02rem;
+  line-height: 1.3;
+}
+
+.ponto-apoio__estado {
+  padding: 0.12rem 0.55rem;
+  border-radius: 999px;
+  background: var(--concreto-2);
+  color: var(--texto-suave);
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.ponto-apoio__estado--aberto {
+  background: var(--sucesso-fundo);
+  color: var(--sucesso);
+}
+
+.ponto-apoio .rotas-salvas__meta {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.ponto-apoio__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-self: end;
+  margin-top: 0.4rem;
+}
+
+/* Paginação da lista de pontos de apoio */
+.paginacao {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 1.4rem;
+}
+
+.paginacao__numeros {
+  display: flex;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.paginacao__numero,
+.paginacao__passo {
+  min-width: 2.5rem;
+  min-height: 2.5rem;
+  padding: 0 0.8rem;
+  border: 1px solid var(--linha);
+  border-radius: 999px;
+  background: var(--papel);
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.paginacao__numero:hover,
+.paginacao__passo:hover:not(:disabled) {
+  border-color: var(--pilar-seguranca);
+}
+
+.paginacao__numero[aria-current="page"] {
+  border-color: var(--asfalto);
+  background: var(--asfalto);
+  color: var(--papel);
+}
+
+.paginacao__passo:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* Perfil › Contatos de emergência */
+.contato {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.4rem 0.9rem;
+  align-items: start;
+}
+
+.contato__avatar {
+  display: grid;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 50%;
+  background: var(--pilar-seguranca);
+  color: #fff;
+  font-family: var(--fonte-titulo);
+  font-weight: 800;
+  font-size: 1.2rem;
+}
+
+.contato__nome {
+  margin: 0;
+  font-family: var(--fonte-titulo);
+  font-weight: 800;
+  font-size: 1.1rem;
+}
+
+.contato__meta {
+  margin: 0 0 0.3rem;
+  color: var(--texto-suave);
+}
+
+.contato__acoes {
+  grid-column: 2;
+}
+
+.contato-form {
+  max-width: 620px;
+  margin-bottom: 1.2rem;
+}
+
+.contato-form .perfil-subtitulo {
+  margin-top: 0;
+}
+
+/* Mapa de riscos: botão da camada de pontos de apoio */
+.mapa-camada {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 36px;
+  margin: 0.55rem 0 0.2rem;
+  padding: 0.25rem 0.8rem;
+  border: 1.5px solid var(--linha-forte);
+  border-radius: 999px;
+  background: var(--papel);
+  color: var(--texto);
+  font-family: var(--fonte-titulo);
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.mapa-camada:hover {
+  border-color: var(--asfalto);
+}
+
+.mapa-camada[aria-pressed="true"] {
+  border-color: var(--pilar-seguranca);
+  background: var(--pilar-seguranca);
+  color: #fff;
+}
+
+.mapa-camada__erro {
+  margin: 0.2rem 0 0;
+  font-size: 0.85rem;
+  color: var(--erro);
+}
+
+/* Planejar rota: ponto de apoio sugerido perto de uma ocorrência de insegurança */
+.apoio-sugerido {
+  display: grid;
+  gap: 0.3rem;
+  margin-top: 0.55rem;
+  padding: 0.65rem 0.75rem;
+  border-left: 3px solid var(--pilar-seguranca);
+  border-radius: 0 var(--raio) var(--raio) 0;
+  background: color-mix(in srgb, var(--pilar-seguranca) 9%, var(--papel));
+}
+
+.apoio-sugerido__rotulo {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--pilar-seguranca);
+}
+
+.apoio-sugerido__nome {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--texto);
+  font-family: var(--fonte-titulo);
+  font-weight: 800;
+  font-size: 0.95rem;
+  text-align: left;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--pilar-seguranca) 50%, transparent);
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.apoio-sugerido__meta {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--texto-suave);
+}
+
+.apoio-sugerido .botao {
+  justify-self: start;
+}
