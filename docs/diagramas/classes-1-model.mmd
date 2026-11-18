@@ -82,6 +82,56 @@ classDiagram
         +estaAberto(LocalTime agora) boolean
         +distanciaMetrosAte(double x, double y) int
     }
+    class Horario {
+        <<final>>
+        +estaAberto(aberto24h, abre, fecha, LocalTime agora)$ boolean
+    }
+    class ProgramaMoradia {
+        +List~String~ TIPOS$
+        -Long id
+        -String nome
+        -String tipo
+        -String canal
+        -Double rendaMaxima
+        +atendeRenda(double rendaFamiliar) boolean
+        +listaDocumentos() List~String~
+    }
+    class InscricaoPrograma {
+        +List~String~ STATUS$
+        -Long id
+        -Long idCidadao
+        -ProgramaMoradia programa
+        -String status
+        -String protocolo
+    }
+    class LugarLazer {
+        +List~String~ TIPOS$
+        -Long id
+        -String nome
+        -String tipo
+        -String bairro
+        -String zona
+        -boolean aberto24h
+        -String abre
+        -String fecha
+        -double x
+        -double y
+        +estaAberto(LocalTime agora) boolean
+        +distanciaMetrosAte(double x, double y) int
+    }
+    class EventoLazer {
+        +List~String~ CATEGORIAS$
+        -Long id
+        -LugarLazer lugar
+        -String titulo
+        -String categoria
+        -String descricao
+        -LocalDateTime inicio
+        -LocalDateTime fim
+        +jaTerminou(LocalDateTime agora) boolean
+        +acontecendo(LocalDateTime agora) boolean
+        +comecaAte(LocalDateTime limite) boolean
+    }
     class ContatoEmergencia {
         -Long id
         -Long idCidadao
@@ -96,3 +146,9 @@ classDiagram
     Ocorrencia "*" --> "1" Via : acontece em
     Cidadao "*" --> "*" Feira : favorita
     Cidadao "1" --> "0..5" ContatoEmergencia : avisa
+    Cidadao "1" --> "*" InscricaoPrograma : registra
+    InscricaoPrograma "*" --> "1" ProgramaMoradia : em
+    EventoLazer "*" --> "1" LugarLazer : acontece em
+    Cidadao "*" --> "0..20" EventoLazer : agenda
+    PontoApoio ..> Horario
+    LugarLazer ..> Horario

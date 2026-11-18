@@ -10,7 +10,7 @@ import { useApp } from "../contexto.js";
 import { useCarregar } from "../hooks/useCarregar.js";
 import { useTitulo } from "../hooks/useTitulo.js";
 import { api, consulta } from "../services/api.js";
-import { formatarNumero, tempoRelativo } from "../utils/formato.js";
+import { formatarNumero, formatarPeriodo, tempoRelativo } from "../utils/formato.js";
 import { MODAL_FRASE } from "../utils/rotulos.js";
 
 const ZONAS = [
@@ -61,6 +61,40 @@ export default function MapaPage() {
   const pontosNoMapa = verApoio && pontos ? pontos : null;
   const pontoEscolhido = pontosNoMapa?.find((ponto) => ponto.id === pontoAtivo) ?? null;
 
+  // Camada do pilar Lazer: lugares e a programação dos próximos 14 dias (buscados ao ligar o botão)
+  const [verLazer, setVerLazer] = useState(() => parametroDaUrl("lazer") === "1");
+  const [lugarAtivo, setLugarAtivo] = useState(null);
+  const [lazer, setLazer] = useState(null); // { lugares, eventos }
+  const [erroLazer, setErroLazer] = useState(null);
+  useEffect(() => {
+    if (!verLazer || lazer) return;
+    Promise.all([api.buscar("/lugares-lazer"), api.buscar("/eventos-lazer?dias=14")])
+      .then(([lugares, eventos]) => setLazer({ lugares, eventos }))
+      .catch(setErroLazer);
+  }, [verLazer, lazer]);
+  const lugaresNoMapa = verLazer && lazer ? lazer.lugares : null;
+  const lugarEscolhido = lugaresNoMapa?.find((lugar) => lugar.id === lugarAtivo) ?? null;
+
+  function alternarLazer() {
+    setVerLazer((ligado) => !ligado);
+    setLugarAtivo(null);
+    setErroLazer(null);
+  }
+
+  const escolherLugar = useCallback(
+    (id) => {
+      setLugarAtivo(id);
+      if (id) {
+        setSelecionada(null);
+        setPontoAtivo(null);
+        if (celular) setPainelAberto(true);
+        const lugar = lazer?.lugares.find((item) => item.id === id);
+        if (lugar) refMapa.current?.focarPonto(lugar.local.x, lugar.local.y);
+      }
+    },
+    [celular, lazer],
+  );
+
   function alternarApoio() {
     setVerApoio((ligado) => !ligado);
     setPontoAtivo(null);
@@ -72,6 +106,7 @@ export default function MapaPage() {
       setPontoAtivo(id);
       if (id) {
         setSelecionada(null);
+        setLugarAtivo(null);
         if (celular) setPainelAberto(true);
         const ponto = pontos?.find((item) => item.id === id);
         if (ponto) refMapa.current?.focarPonto(ponto.local.x, ponto.local.y);
@@ -121,7 +156,10 @@ export default function MapaPage() {
   const selecionar = useCallback(
     (id) => {
       setSelecionada(id);
-      if (id) setPontoAtivo(null);
+      if (id) {
+        setPontoAtivo(null);
+        setLugarAtivo(null);
+      }
       if (id && celular) setPainelAberto(true);
     },
     [celular],
@@ -161,6 +199,9 @@ export default function MapaPage() {
           pontosApoio={pontosNoMapa}
           pontoAtivo={pontoAtivo}
           aoEscolherPonto={escolherPonto}
+          lugaresLazer={lugaresNoMapa}
+          lugarAtivo={lugarAtivo}
+          aoEscolherLugar={escolherLugar}
         />
       )}
 
@@ -195,7 +236,17 @@ export default function MapaPage() {
             <Icone nome="SEGURANCA" tamanho={16} />
             {verApoio ? "Esconder pontos de apoio" : "Mostrar pontos de apoio"}
           </button>
+          <button
+            type="button"
+            className="mapa-camada mapa-camada--lazer"
+            aria-pressed={verLazer}
+            onClick={alternarLazer}
+          >
+            <Icone nome="LAZER" tamanho={16} />
+            {verLazer ? "Esconder lugares de lazer" : "Mostrar lugares de lazer"}
+          </button>
           {erroPontos && <p className="mapa-camada__erro">{erroPontos.message}</p>}
+          {erroLazer && <p className="mapa-camada__erro">{erroLazer.message}</p>}
           {ativas.dados && (
             <p className="mapa-painel__resumo" aria-live="polite">
               <strong>
@@ -207,7 +258,15 @@ export default function MapaPage() {
         </header>
 
         <div id="mapa-painel-corpo" className="mapa-painel__corpo" hidden={celular && !painelAberto}>
-          {pontoEscolhido ? (
+          {lugarEscolhido ? (
+            <DetalheLugar
+              key={lugarEscolhido.id}
+              lugar={lugarEscolhido}
+              eventos={lazer.eventos.filter((evento) => evento.lugar.id === lugarEscolhido.id)}
+              rotulo={rotulo}
+              aoVoltar={() => setLugarAtivo(null)}
+            />
+          ) : pontoEscolhido ? (
             <DetalhePonto key={pontoEscolhido.id} ponto={pontoEscolhido} rotulo={rotulo} aoVoltar={() => setPontoAtivo(null)} />
           ) : escolhida ? (
             <DetalheNoMapa
@@ -344,6 +403,58 @@ function DetalhePonto({ ponto, rotulo, aoVoltar }) {
       </a>
       <p className="mapa-detalhe__quando">
         <a href="#/seguranca">Ver todos os pontos de apoio</a>
+      </p>
+    </article>
+  );
+}
+
+/** Lugar de lazer escolhido no mapa (camada do pilar Lazer), com a programação dos próximos dias. */
+function DetalheLugar({ lugar, eventos, rotulo, aoVoltar }) {
+  const horario = lugar.aberto24h ? "24 horas" : `${lugar.abre} às ${lugar.fecha === "00:00" ? "meia-noite" : lugar.fecha}`;
+  const rota = new URLSearchParams({ destino: lugar.nome, x: String(lugar.local.x), y: String(lugar.local.y) });
+  return (
+    <article className="mapa-detalhe" aria-labelledby="mapa-lugar-titulo">
+      <button type="button" className="mapa-detalhe__voltar" onClick={aoVoltar}>
+        <Icone nome="VOLTAR" tamanho={16} />
+        Todas as ocorrências
+      </button>
+      <p className="mapa-detalhe__tipo">
+        <Icone nome="LAZER" tamanho={16} />
+        {rotulo("tiposLugarLazer", lugar.tipo)}
+      </p>
+      <h2 id="mapa-lugar-titulo" className="mapa-detalhe__titulo">
+        {lugar.nome}
+      </h2>
+      <p className="mapa-detalhe__risco">
+        <span className={`ponto-apoio__estado ${lugar.abertoAgora ? "ponto-apoio__estado--aberto" : ""}`}>
+          {lugar.abertoAgora ? "Aberto agora" : "Fechado agora"}
+        </span>{" "}
+        {horario}
+      </p>
+      <p className="mapa-detalhe__descricao">
+        {lugar.bairro} · {lugar.zona}
+      </p>
+      <h3 className="mapa-detalhe__subtitulo">Nos próximos 14 dias</h3>
+      {eventos.length === 0 ? (
+        <p className="mapa-detalhe__descricao">Nenhum evento marcado aqui.</p>
+      ) : (
+        <ul className="mapa-detalhe__eventos">
+          {eventos.map((evento) => (
+            <li key={evento.id}>
+              <strong>{evento.titulo}</strong>
+              <span>
+                {rotulo("categoriasEvento", evento.categoria)} · {formatarPeriodo(evento.inicio, evento.fim)}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+      <a className="botao botao--primario botao--pequeno" href={`#/mobilidade/rota?${rota}`}>
+        <Icone nome="MAPA" tamanho={16} />
+        Como chegar
+      </a>
+      <p className="mapa-detalhe__quando">
+        <a href="#/lazer">Ver toda a programação</a>
       </p>
     </article>
   );

@@ -11,9 +11,9 @@ Este guia é para o grupo estudar o projeto antes da entrega e da apresentação
 - Com uma conta, o cidadão salva as rotas do dia a dia e recebe alerta quando surge, numa via da rota, uma ocorrência cujo risco para o seu modal passa de 4.
 - O pilar de **alimentação** lista as feiras livres por zona e dia; com conta, o cidadão favorita feiras e vê se tem feira favorita hoje.
 - O pilar de **segurança** mostra os telefones de emergência, os pontos de apoio (delegacias, PM, Guarda Civil, saúde 24h, acolhimento) com filtro por zona e tipo e o selo "aberto agora", os 3 mais perto da casa do cidadão e, no perfil, os contatos de emergência.
-- Os outros três pilares (educação, habitação e lazer) mostram uma página "em breve" com o que a primeira consulta vai trazer.
+- O pilar de **lazer** mostra a programação gratuita dos próximos dias (com filtro por zona, categoria e período), os parques, CEUs, centros culturais e bibliotecas com o "aberto agora" e os mais perto de casa; com conta, o cidadão marca "Eu vou" e acompanha a agenda no perfil.
 
-O CRUD é em Java com JDBC no Oracle: o do cidadão (cadastro, editar, excluir a conta), o das rotas (salvar, listar, abrir, renomear, excluir), o dos endereços, o das feiras favoritas e o dos contatos de emergência. São **28 classes** e **10 tabelas**: o projeto foi enxugado de propósito para ser fácil de explicar. O React só mostra e envia dados: as regras ficam no Java.
+O CRUD é em Java com JDBC no Oracle: o do cidadão (cadastro, editar, excluir a conta), o das rotas (salvar, listar, abrir, renomear, excluir), o dos endereços, o das feiras favoritas e o dos contatos de emergência. São **39 classes** e **15 tabelas**: o projeto foi enxugado de propósito para ser fácil de explicar. O React só mostra e envia dados: as regras ficam no Java.
 
 ---
 
@@ -35,7 +35,7 @@ Exemplo: a Ana (moto) salva a rota "Casa para o trabalho".
 
 ## 3. Backend, pacote por pacote
 
-São 28 classes em 6 pacotes. Os diagramas estão em `docs/` (visão geral e uma página por camada).
+São 39 classes em 6 pacotes. Os diagramas estão em `docs/` (visão geral e uma página por camada).
 
 ### `model`: os dados
 
@@ -48,6 +48,9 @@ São 28 classes em 6 pacotes. Os diagramas estão em `docs/` (visão geral e uma
 | `Endereco` | Casa, trabalho, estudo ou outro, com apelido e posição. `isTipoUnico()` diz que casa e trabalho só podem aparecer uma vez. |
 | `Feira` | Feira livre: nome, rua, zona, dia da semana e horário. |
 | `PontoApoio` | Onde pedir ajuda: tipo (delegacia, PM, Guarda Civil, saúde 24h, acolhimento), bairro, zona, telefone, horário e posição no mapa. `estaAberto(agora)` diz se está aberto (inclusive quem vira a noite, como 22:00 às 06:00; horário ilegível conta como fechado). `distanciaMetrosAte(x, y)` mede a distância em linha reta (1 unidade do mapa = 25 m). |
+| `Horario` | A regra do "aberto agora" (inclusive quem vira a noite e quem fecha à meia-noite), usada por `PontoApoio` e `LugarLazer`. Horário ilegível conta como fechado. |
+| `LugarLazer` | Parque, praça, CEU, centro cultural, biblioteca ou centro esportivo, com horário e posição no mapa. `estaAberto(agora)` usa o `Horario`; `distanciaMetrosAte(x, y)` mede até a casa do cidadão. |
+| `EventoLazer` | Atividade gratuita num lugar, com início e fim. `jaTerminou(agora)` tira o evento da programação e impede que entre na agenda; `acontecendo(agora)` acende o selo "Acontecendo agora". |
 | `ContatoEmergencia` | Pessoa que o cidadão quer avisar: nome, telefone e parentesco (opcional). `getTelefoneDigitos()` tira a máscara, para validar e para o link `tel:`. |
 
 Os tipos (modal, tipo de ocorrência, tipo de endereço) são `String` conferidas contra listas fixas no Java e um `CHECK` no Oracle: menos classes e o mesmo resultado.
@@ -68,6 +71,7 @@ Os tipos (modal, tipo de ocorrência, tipo de endereço) são `String` conferida
 | `EnderecoService` | CRUD dos endereços: apelido único, casa e trabalho no máximo uma vez cada, no máximo 10 endereços. |
 | `FeiraService` | Lista as feiras com filtro de zona e dia, favorita e remove feiras do cidadão e acha a feira favorita do dia de hoje. |
 | `SegurancaService` | Lista os pontos de apoio (zona e tipo validados; "aberto agora" pelo horário de `America/Sao_Paulo`), acha os 3 mais perto da casa do cidadão (ou do primeiro endereço salvo), acha o mais perto de um local do mapa (`maisProximo`: prefere um aberto agora e, para ocorrência de insegurança, só aceita os `TIPOS_POLICIAIS`, porque a ajuda certa para furto ou trecho escuro é a polícia, não um pronto-socorro) e faz o CRUD dos contatos de emergência: nome de 2 a 60 letras sem repetir, telefone com 8 a 13 dígitos e no máximo 5 contatos. |
+| `LazerService` | Lista os lugares (zona e tipo validados; "aberto agora" pelo horário de `America/Sao_Paulo`), acha os 3 mais perto da casa, lista a programação que ainda não acabou dos próximos `dias` (7 por padrão, de 1 a 31) e cuida da agenda: o evento precisa existir (404), não pode ter acabado (400), não pode repetir (409) e cada cidadão tem até 20 eventos futuros marcados. |
 | `OcorrenciaService` | Lista as ocorrências com o risco para o modal (da maior para a menor), avalia um caminho antes de salvar (`noCaminho`) e monta os alertas: as ocorrências que estão em alguma via das rotas do cidadão. |
 
 ### `api`: a porta HTTP
@@ -89,10 +93,10 @@ O `main`: cria os objetos na ordem DAO, depois Service, depois Servidor, passand
 ## 4. Banco de dados
 
 - **Prefixo `CL_`**: o usuário Oracle da FIAP é usado em várias disciplinas. O prefixo evita apagar ou colidir com uma tabela de outro trabalho.
-- **10 tabelas:** `CL_CIDADAO`, `CL_VIA`, `CL_OCORRENCIA`, `CL_ROTA`, `CL_ROTA_VIA`, `CL_ENDERECO`, `CL_FEIRA`, `CL_CIDADAO_FEIRA`, `CL_PONTO_APOIO` e `CL_CONTATO_EMERGENCIA`. As associativas N:N são `CL_ROTA_VIA` (com a ordem da via no caminho) e `CL_CIDADAO_FEIRA` (as feiras favoritas). Cada ocorrência fica em uma via (N:1) e cada contato de emergência é de um cidadão (N:1).
+- **15 tabelas:** `CL_CIDADAO`, `CL_VIA`, `CL_OCORRENCIA`, `CL_ROTA`, `CL_ROTA_VIA`, `CL_ENDERECO`, `CL_FEIRA`, `CL_CIDADAO_FEIRA`, `CL_PONTO_APOIO`, `CL_CONTATO_EMERGENCIA`, `CL_PROGRAMA_MORADIA`, `CL_INSCRICAO_PROGRAMA`, `CL_LUGAR_LAZER`, `CL_EVENTO_LAZER` e `CL_CIDADAO_EVENTO`. As associativas N:N são `CL_ROTA_VIA` (com a ordem da via no caminho), `CL_CIDADAO_FEIRA` (as feiras favoritas) e `CL_CIDADAO_EVENTO` (a agenda do Lazer). Cada ocorrência fica em uma via (N:1) e cada contato de emergência é de um cidadão (N:1).
 - **`CL_PONTO_APOIO`** usa um `CHECK` composto: quem não abre 24 horas (`aberto_24h = 'N'`) precisa ter `abre` e `fecha`. A posição (`pos_x`, `pos_y`) está no mesmo sistema do mapa e de `CL_ENDERECO`, por isso dá para medir a distância até a casa do cidadão.
-- **`ON DELETE CASCADE`** só onde faz sentido apagar junto: as rotas, os endereços, as feiras favoritas e os contatos de um cidadão que exclui a conta, e as vias de uma rota excluída.
-- **Dados de demonstração** com datas relativas (`SYSDATE - 3/24` é três horas atrás), para a demo parecer sempre atual.
+- **`ON DELETE CASCADE`** só onde faz sentido apagar junto: as rotas, os endereços, as feiras favoritas, os contatos e a agenda de um cidadão que exclui a conta, e as vias de uma rota excluída.
+- **Dados de demonstração** com datas relativas (`SYSDATE - 3/24` é três horas atrás; `TRUNC(SYSDATE) + 2 + 960/1440` é depois de amanhã às 16h), para a demo parecer sempre atual. Os eventos do Lazer usam isso para a programação estar sempre na semana.
 
 ---
 
@@ -108,6 +112,7 @@ O `main`: cria os objetos na ordem DAO, depois Service, depois Servidor, passand
 | `pages/MobilidadePage.jsx` | As duas consultas do pilar (Planejar rota e Mapa de riscos) e a regra do risco. |
 | `pages/AlimentacaoPage.jsx` | Pilar Alimentação: a feira favorita de hoje (com conta) e as feiras disponíveis. |
 | `pages/SegurancaPage.jsx` | Pilar Segurança: a faixa com os telefones de emergência (links `tel:`), os 3 pontos de apoio mais perto de casa e a lista com filtros de zona, tipo e "aberto agora". Os filtros viram parâmetros da URL da API (`consulta()` em `services/api.js`); o Java é quem filtra e calcula o "aberto agora". |
+| `pages/LazerPage.jsx` | Pilar Lazer: os lugares mais perto de casa, o filtro de zona (vale para a programação e para os lugares), a programação com filtros de categoria e período e o botão "Eu vou", e os lugares com filtro de tipo e "aberto agora". As listas usam a `Paginacao`. Exporta o `CartaoEvento`, reaproveitado na aba Minha agenda. |
 | `pages/EmBrevePage.jsx` | Página dos pilares que ainda não têm consulta (`/lazer`, `/educacao`, `/habitacao`). Um caminho que não é pilar cai na página "não encontrada". |
 | `hooks/useRota.js` | Navegação por hash (`#/mobilidade`), sem biblioteca de rotas. |
 | `hooks/useCarregar.js` | Busca dados e guarda `carregando`, `erro` e `dados`. |
@@ -123,13 +128,14 @@ O `main`: cria os objetos na ordem DAO, depois Service, depois Servidor, passand
 | `scripts/gerar-mapa.mjs` | Script que baixa os dados do OpenStreetMap (Overpass API), projeta as coordenadas, emenda os trechos de cada rua, simplifica as linhas e grava o arquivo do mapa e a rede de ruas para as rotas. Só roda quando alguém quer atualizar o mapa; o site não depende dele. |
 | `utils/rotas.js` | O cálculo de rotas: carrega a rede (`public/mapa/sao-paulo-rotas.json`), acha o cruzamento mais próximo de um ponto, roda o A\*, descobre quais vias do banco a rota percorre, monta as penalidades da rota mais segura e faz a busca de ruas e bairros. |
 | `pages/PlanejarRotaPage.jsx` | Página Planejar rota: saída e destino (`components/CampoLugar.jsx`, com sugestões e marcação no mapa), modal, as opções mais rápida e mais segura lado a lado, as ocorrências no caminho e o formulário para salvar. Para cada ocorrência de insegurança da rota escolhida, acha onde o caminho passa pela via (`pontoDaViaNaRota`, em `utils/rotas.js`), pede ao Java o ponto policial mais próximo (`GET /api/pontos-apoio/proximo`) e mostra a sugestão embaixo da ocorrência e como pino no mapa. |
-| `pages/PerfilPage.jsx` | O perfil, no estilo das contas de loja on-line: barra lateral (Minha conta e uma linha por pilar) e o conteúdo ao centro; dentro do pilar, as funções ficam em abas. O caminho escolhe o que abrir: `#/perfil`, `#/perfil/dados`, `#/perfil/<pilar>` (abre a primeira aba) e `#/perfil/mobilidade/rotas`, `.../locomocao` ou `.../enderecos`, `#/perfil/alimentacao/feiras` e `#/perfil/seguranca/contatos`. Os pilares em breve mostram as abas futuras desativadas. |
-| `components/perfil/*` | As seções do perfil: `ResumoConta` (cartão do cidadão e três números), `DadosConta`, `MinhasRotas` (alertas e CRUD das rotas), `Locomocao` (cards de modal: um clique escolhe e já salva), `Enderecos` (CRUD dos endereços, usando o mesmo `CampoLugar` da tela de rotas), `MinhasFeiras` (favoritar e remover feiras) e `MeusContatos` (CRUD dos contatos de emergência). |
+| `pages/PerfilPage.jsx` | O perfil, no estilo das contas de loja on-line: barra lateral (Minha conta e uma linha por pilar) e o conteúdo ao centro; dentro do pilar, as funções ficam em abas. O caminho escolhe o que abrir: `#/perfil`, `#/perfil/dados`, `#/perfil/<pilar>` (abre a primeira aba) e `#/perfil/mobilidade/rotas`, `.../locomocao` ou `.../enderecos`, `#/perfil/alimentacao/feiras`, `#/perfil/seguranca/contatos` e `#/perfil/lazer/agenda`. Um pilar em breve mostraria as abas futuras desativadas. |
+| `components/perfil/*` | As seções do perfil: `ResumoConta` (cartão do cidadão e três números), `DadosConta`, `MinhasRotas` (alertas e CRUD das rotas), `Locomocao` (cards de modal: um clique escolhe e já salva), `Enderecos` (CRUD dos endereços, usando o mesmo `CampoLugar` da tela de rotas), `MinhasFeiras` (favoritar e remover feiras) e `MeusContatos` (CRUD dos contatos de emergência) e `MinhaAgenda` (os eventos marcados, separados entre os próximos e os que já aconteceram). |
 | `hooks/useCameraMapa.js` | A câmera do mapa: arrastar, roda e pinça para zoom, botão direito ou dois dedos para girar, teclado, voos animados com `requestAnimationFrame` e enquadramento automático. A cada quadro escreve a câmera em variáveis CSS (para as placas) e redesenha o canvas, sem re-renderizar o React. |
-| `pages/MapaPage.jsx` | Página Mapa de riscos em tela cheia: painel com o seletor de modal, a lista de ocorrências (clicar voa até a placa) e o detalhe da ocorrência escolhida. Aceita `?ocorrencia=3` na URL, que é como os alertas abrem o mapa já na ocorrência. O botão "Mostrar pontos de apoio" liga a camada do pilar Segurança (os pontos só são buscados na primeira vez); clicar num pino voa até ele e mostra o detalhe com o botão de ligar. No celular o painel vira uma gaveta. |
+| `pages/MapaPage.jsx` | Página Mapa de riscos em tela cheia: painel com o seletor de modal, a lista de ocorrências (clicar voa até a placa) e o detalhe da ocorrência escolhida. Aceita `?ocorrencia=3` na URL, que é como os alertas abrem o mapa já na ocorrência. O botão "Mostrar lugares de lazer" (ou `?lazer=1` na URL) liga a camada do pilar Lazer: cada lugar vira um pino e o detalhe mostra a programação dos próximos 14 dias e o "Como chegar". O botão "Mostrar pontos de apoio" liga a camada do pilar Segurança (os pontos só são buscados na primeira vez); clicar num pino voa até ele e mostra o detalhe com o botão de ligar. No celular o painel vira uma gaveta. |
 | `components/Icone.jsx` | Ícones próprios em SVG para os 6 pilares, os 7 tipos de ocorrência, os 6 modais e os de interface (telefone, relógio, pin...). |
 | `styles/base.css` | Os tokens da paleta (cores, fontes, raios e sombras) e a estrutura da página. |
 | `styles/hub.css` | O painel de abertura com a órbita, os cards dos pilares, o cabeçalho de cada pilar (tingido com a cor dele, definida em `--pilar-*` no `base.css`) e a página "em breve". |
+| `styles/lazer.css` | Os cartões de evento, as cores das categorias e dos tipos de lugar (também usadas nos pinos do mapa) e a programação no detalhe do lugar no mapa. |
 | `styles/seguranca.css` | A faixa de emergência, os filtros em chips, os cartões dos pontos de apoio e os contatos. |
 | `styles/movimento.css`, `styles/mapa.css` e `styles/rota.css` | Animações de entrada e troca de página (View Transitions API), o visual do mapa (placas 3D com espessura, poste e sombra, painel lateral e controles) e o painel de rotas. |
 

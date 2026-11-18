@@ -28,16 +28,19 @@ public final class Conexao {
     private static final Properties ARQUIVO = lerArquivo();
 
     /** Mensagem para cada constraint UNIQUE que o usuário pode violar (o nome vem do script.sql). */
-    private static final Map<String, String> REPETIDOS = Map.of(
-            "UK_CL_CIDADAO_EMAIL", "Este e-mail já está cadastrado.",
-            "UK_CL_ROTA_NOME", "Você já tem uma rota com este nome.",
-            "UK_CL_ENDERECO_APELIDO", "Você já tem um endereço com este apelido.",
-            "UK_CL_FEIRA_RUA_DIA", "Já existe uma feira para esta rua neste dia.",
-            "PK_CL_CIDADAO_FEIRA", "Esta feira já está na sua lista de favoritas.",
-            "UK_CL_PONTO_APOIO_NOME", "Já existe um ponto de apoio com este nome.",
-            "UK_CL_CONTATO_NOME", "Você já tem um contato com este nome.",
-            "UK_CL_PROGRAMA_NOME", "Já existe um programa de moradia com este nome.",
-            "UK_CL_INSCRICAO_PROG", "Você já registrou a sua inscrição neste programa.");
+    private static final Map<String, String> REPETIDOS = Map.ofEntries(
+            Map.entry("UK_CL_CIDADAO_EMAIL", "Este e-mail já está cadastrado."),
+            Map.entry("UK_CL_ROTA_NOME", "Você já tem uma rota com este nome."),
+            Map.entry("UK_CL_ENDERECO_APELIDO", "Você já tem um endereço com este apelido."),
+            Map.entry("UK_CL_FEIRA_RUA_DIA", "Já existe uma feira para esta rua neste dia."),
+            Map.entry("PK_CL_CIDADAO_FEIRA", "Esta feira já está na sua lista de favoritas."),
+            Map.entry("UK_CL_PONTO_APOIO_NOME", "Já existe um ponto de apoio com este nome."),
+            Map.entry("UK_CL_CONTATO_NOME", "Você já tem um contato com este nome."),
+            Map.entry("UK_CL_PROGRAMA_NOME", "Já existe um programa de moradia com este nome."),
+            Map.entry("UK_CL_INSCRICAO_PROG", "Você já registrou a sua inscrição neste programa."),
+            Map.entry("UK_CL_LUGAR_LAZER_NOME", "Já existe um lugar de lazer com este nome."),
+            Map.entry("UK_CL_EVENTO_TITULO", "Este lugar já tem um evento com este título."),
+            Map.entry("PK_CL_CIDADAO_EVENTO", "Este evento já está na sua agenda."));
 
     private Conexao() {
     }

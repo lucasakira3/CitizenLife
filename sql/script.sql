@@ -12,7 +12,7 @@
 -- 1. Limpeza ----------------------------------------------------------
 BEGIN
     FOR tabela IN (SELECT table_name FROM user_tables
-                    WHERE table_name IN ('CL_INSCRICAO_PROGRAMA', 'CL_PROGRAMA_MORADIA', 'CL_CONTATO_EMERGENCIA', 'CL_PONTO_APOIO', 'CL_CIDADAO_FEIRA', 'CL_FEIRA', 'CL_ENDERECO', 'CL_ROTA_VIA', 'CL_ROTA',
+                    WHERE table_name IN ('CL_CIDADAO_EVENTO', 'CL_EVENTO_LAZER', 'CL_LUGAR_LAZER', 'CL_INSCRICAO_PROGRAMA', 'CL_PROGRAMA_MORADIA', 'CL_CONTATO_EMERGENCIA', 'CL_PONTO_APOIO', 'CL_CIDADAO_FEIRA', 'CL_FEIRA', 'CL_ENDERECO', 'CL_ROTA_VIA', 'CL_ROTA',
                                          'CL_OCORRENCIA', 'CL_CIDADAO', 'CL_VIA', 'CL_OCORRENCIA_VIA', 'CL_REGIAO'))
     LOOP
         EXECUTE IMMEDIATE 'DROP TABLE ' || tabela.table_name || ' CASCADE CONSTRAINTS PURGE';
@@ -204,6 +204,54 @@ CREATE TABLE cl_inscricao_programa (
     CONSTRAINT fk_cl_inscricao_programa FOREIGN KEY (id_programa) REFERENCES cl_programa_moradia (id_programa) ON DELETE CASCADE,
     CONSTRAINT uk_cl_inscricao_prog UNIQUE (id_cidadao, id_programa),
     CONSTRAINT ck_cl_inscricao_status CHECK (status IN ('INSCRITO', 'EM_ANALISE', 'APROVADO'))
+);
+
+-- Lazer · lugares: parques, praças, CEUs, centros culturais, bibliotecas e centros esportivos públicos.
+-- Quem não abre 24 horas informa abre e fecha (HH:MM); fecha 00:00 = fecha à meia-noite.
+-- pos_x e pos_y no mesmo sistema do mapa (1 unidade = 25 metros), como CL_PONTO_APOIO e CL_ENDERECO.
+CREATE TABLE cl_lugar_lazer (
+    id_lugar    NUMBER(10)    GENERATED ALWAYS AS IDENTITY,
+    nome        VARCHAR2(80)  NOT NULL,
+    tipo        VARCHAR2(20)  NOT NULL,
+    bairro      VARCHAR2(60)  NOT NULL,
+    zona        VARCHAR2(20)  NOT NULL,
+    aberto_24h  CHAR(1)       DEFAULT 'N' NOT NULL,
+    abre        VARCHAR2(5),
+    fecha       VARCHAR2(5),
+    pos_x       NUMBER(8, 2)  NOT NULL,
+    pos_y       NUMBER(8, 2)  NOT NULL,
+    CONSTRAINT pk_cl_lugar_lazer PRIMARY KEY (id_lugar),
+    CONSTRAINT uk_cl_lugar_lazer_nome UNIQUE (nome),
+    CONSTRAINT ck_cl_lugar_lazer_tipo CHECK (tipo IN ('PARQUE', 'PRACA', 'CEU', 'CENTRO_CULTURAL', 'BIBLIOTECA', 'ESPORTIVO')),
+    CONSTRAINT ck_cl_lugar_lazer_zona CHECK (zona IN ('Centro', 'Zona Norte', 'Zona Sul', 'Zona Leste', 'Zona Oeste')),
+    CONSTRAINT ck_cl_lugar_lazer_24h CHECK (aberto_24h IN ('S', 'N')),
+    CONSTRAINT ck_cl_lugar_lazer_horario CHECK (aberto_24h = 'S' OR (abre IS NOT NULL AND fecha IS NOT NULL))
+);
+
+-- Lazer · programação gratuita: cada evento acontece num lugar (N:1), com início e fim.
+CREATE TABLE cl_evento_lazer (
+    id_evento   NUMBER(10)    GENERATED ALWAYS AS IDENTITY,
+    id_lugar    NUMBER(10)    NOT NULL,
+    titulo      VARCHAR2(80)  NOT NULL,
+    categoria   VARCHAR2(10)  NOT NULL,
+    descricao   VARCHAR2(300) NOT NULL,
+    dt_inicio   DATE          NOT NULL,
+    dt_fim      DATE          NOT NULL,
+    CONSTRAINT pk_cl_evento_lazer PRIMARY KEY (id_evento),
+    CONSTRAINT fk_cl_evento_lugar FOREIGN KEY (id_lugar) REFERENCES cl_lugar_lazer (id_lugar) ON DELETE CASCADE,
+    CONSTRAINT uk_cl_evento_titulo UNIQUE (id_lugar, titulo),
+    CONSTRAINT ck_cl_evento_categoria CHECK (categoria IN ('ESPORTE', 'CULTURA', 'MUSICA', 'INFANTIL', 'CINEMA', 'OFICINA')),
+    CONSTRAINT ck_cl_evento_datas CHECK (dt_fim > dt_inicio)
+);
+
+-- Lazer · perfil: a agenda do cidadão, os eventos em que ele marcou "Eu vou" (N:N cidadão × evento).
+CREATE TABLE cl_cidadao_evento (
+    id_cidadao   NUMBER(10) NOT NULL,
+    id_evento    NUMBER(10) NOT NULL,
+    dt_marcacao  DATE       DEFAULT SYSDATE NOT NULL,
+    CONSTRAINT pk_cl_cidadao_evento PRIMARY KEY (id_cidadao, id_evento),
+    CONSTRAINT fk_cl_cidadao_evento_cidadao FOREIGN KEY (id_cidadao) REFERENCES cl_cidadao (id_cidadao) ON DELETE CASCADE,
+    CONSTRAINT fk_cl_cidadao_evento_evento FOREIGN KEY (id_evento) REFERENCES cl_evento_lazer (id_evento) ON DELETE CASCADE
 );
 
 -- 3. Dados de demonstração --------------------------------------------
@@ -739,6 +787,188 @@ SELECT c.id_cidadao, p.id_programa, 'INSCRITO', NULL, 'Inscrição pelo site no 
   FROM cl_cidadao c, cl_programa_moradia p
  WHERE c.email = 'felipe.rocha@exemplo.com' AND p.nome = 'Programa de moradia da CDHU';
 
+
+-- Lazer: lugares e programação gratuita (dados de demonstração; datas relativas a hoje)
+INSERT INTO cl_lugar_lazer (nome, tipo, bairro, zona, aberto_24h, abre, fecha, pos_x, pos_y)
+VALUES ('Parque Ibirapuera', 'PARQUE', 'Vila Mariana', 'Zona Sul', 'N', '05:00', '00:00', 940.6, 1276.1);
+INSERT INTO cl_lugar_lazer (nome, tipo, bairro, zona, aberto_24h, abre, fecha, pos_x, pos_y)
+VALUES ('Parque Villa-Lobos', 'PARQUE', 'Alto de Pinheiros', 'Zona Oeste', 'N', '05:30', '19:00', 676.6, 1093.1);
+INSERT INTO cl_lugar_lazer (nome, tipo, bairro, zona, aberto_24h, abre, fecha, pos_x, pos_y)
+VALUES ('Parque da Juventude', 'PARQUE', 'Santana', 'Zona Norte', 'N', '06:00', '22:00', 1096.9, 918.8);
+INSERT INTO cl_lugar_lazer (nome, tipo, bairro, zona, aberto_24h, abre, fecha, pos_x, pos_y)
+VALUES ('Parque do Belém', 'PARQUE', 'Belém', 'Zona Leste', 'N', '06:00', '18:00', 1229.4, 1037.5);
+INSERT INTO cl_lugar_lazer (nome, tipo, bairro, zona, aberto_24h, abre, fecha, pos_x, pos_y)
+VALUES ('Parque Ecológico do Tietê', 'PARQUE', 'Engenheiro Goulart', 'Zona Leste', 'N', '08:00', '17:00', 1509.4, 827.5);
+INSERT INTO cl_lugar_lazer (nome, tipo, bairro, zona, aberto_24h, abre, fecha, pos_x, pos_y)
+VALUES ('Parque da Aclimação', 'PARQUE', 'Aclimação', 'Centro', 'N', '05:00', '20:00', 1065.5, 1217.8);
+INSERT INTO cl_lugar_lazer (nome, tipo, bairro, zona, aberto_24h, abre, fecha, pos_x, pos_y)
+VALUES ('Parque da Água Branca', 'PARQUE', 'Água Branca', 'Zona Oeste', 'N', '06:00', '20:00', 897.8, 1021.8);
+INSERT INTO cl_lugar_lazer (nome, tipo, bairro, zona, aberto_24h, abre, fecha, pos_x, pos_y)
+VALUES ('Parque Santo Dias', 'PARQUE', 'Capão Redondo', 'Zona Sul', 'N', '06:00', '18:00', 476.6, 1612.6);
+INSERT INTO cl_lugar_lazer (nome, tipo, bairro, zona, aberto_24h, abre, fecha, pos_x, pos_y)
+VALUES ('Praça da Sé', 'PRACA', 'Sé', 'Centro', 'S', NULL, NULL, 1053.0, 1104.0);
+INSERT INTO cl_lugar_lazer (nome, tipo, bairro, zona, aberto_24h, abre, fecha, pos_x, pos_y)
+VALUES ('CEU · Butantã', 'CEU', 'Butantã', 'Zona Oeste', 'N', '07:00', '22:00', 661.4, 1193.6);
+INSERT INTO cl_lugar_lazer (nome, tipo, bairro, zona, aberto_24h, abre, fecha, pos_x, pos_y)
+VALUES ('CEU · Guaianases', 'CEU', 'Guaianases', 'Zona Leste', 'N', '07:00', '22:00', 1969.8, 1117.9);
+INSERT INTO cl_lugar_lazer (nome, tipo, bairro, zona, aberto_24h, abre, fecha, pos_x, pos_y)
+VALUES ('CEU · Casa Verde', 'CEU', 'Casa Verde', 'Zona Norte', 'N', '07:00', '22:00', 953.6, 912.5);
+INSERT INTO cl_lugar_lazer (nome, tipo, bairro, zona, aberto_24h, abre, fecha, pos_x, pos_y)
+VALUES ('CEU · Campo Limpo', 'CEU', 'Campo Limpo', 'Zona Sul', 'N', '07:00', '22:00', 518.8, 1489.9);
+INSERT INTO cl_lugar_lazer (nome, tipo, bairro, zona, aberto_24h, abre, fecha, pos_x, pos_y)
+VALUES ('Centro Cultural São Paulo', 'CENTRO_CULTURAL', 'Liberdade', 'Centro', 'N', '10:00', '20:00', 1040.0, 1205.0);
+INSERT INTO cl_lugar_lazer (nome, tipo, bairro, zona, aberto_24h, abre, fecha, pos_x, pos_y)
+VALUES ('Casa de Cultura · Penha', 'CENTRO_CULTURAL', 'Penha', 'Zona Leste', 'N', '09:00', '18:00', 1411.9, 991.3);
+INSERT INTO cl_lugar_lazer (nome, tipo, bairro, zona, aberto_24h, abre, fecha, pos_x, pos_y)
+VALUES ('Casa de Cultura · Santo Amaro', 'CENTRO_CULTURAL', 'Santo Amaro', 'Zona Sul', 'N', '09:00', '18:00', 771.9, 1509.1);
+INSERT INTO cl_lugar_lazer (nome, tipo, bairro, zona, aberto_24h, abre, fecha, pos_x, pos_y)
+VALUES ('Biblioteca Mário de Andrade', 'BIBLIOTECA', 'República', 'Centro', 'N', '08:00', '20:00', 1015.5, 1080.0);
+INSERT INTO cl_lugar_lazer (nome, tipo, bairro, zona, aberto_24h, abre, fecha, pos_x, pos_y)
+VALUES ('Biblioteca · Lapa', 'BIBLIOTECA', 'Lapa', 'Zona Oeste', 'N', '09:00', '18:00', 757.1, 981.9);
+INSERT INTO cl_lugar_lazer (nome, tipo, bairro, zona, aberto_24h, abre, fecha, pos_x, pos_y)
+VALUES ('Centro Esportivo · Mooca', 'ESPORTIVO', 'Mooca', 'Zona Leste', 'N', '07:00', '21:00', 1194.0, 1155.3);
+INSERT INTO cl_lugar_lazer (nome, tipo, bairro, zona, aberto_24h, abre, fecha, pos_x, pos_y)
+VALUES ('Centro Esportivo · Tucuruvi', 'ESPORTIVO', 'Tucuruvi', 'Zona Norte', 'N', '07:00', '21:00', 1161.1, 800.4);
+
+INSERT INTO cl_evento_lazer (id_lugar, titulo, categoria, descricao, dt_inicio, dt_fim)
+SELECT id_lugar, 'Aulão de ioga ao ar livre', 'ESPORTE',
+       'Aula aberta para todas as idades no gramado perto do lago. Leve uma canga ou toalha.',
+       TRUNC(SYSDATE) + 1 + 480/1440, TRUNC(SYSDATE) + 1 + 570/1440
+  FROM cl_lugar_lazer WHERE nome = 'Parque Ibirapuera';
+INSERT INTO cl_evento_lazer (id_lugar, titulo, categoria, descricao, dt_inicio, dt_fim)
+SELECT id_lugar, 'Orquestra no parque', 'MUSICA',
+       'Concerto gratuito com repertório popular e erudito na área do palco ao ar livre.',
+       TRUNC(SYSDATE) + 3 + 660/1440, TRUNC(SYSDATE) + 3 + 780/1440
+  FROM cl_lugar_lazer WHERE nome = 'Parque Ibirapuera';
+INSERT INTO cl_evento_lazer (id_lugar, titulo, categoria, descricao, dt_inicio, dt_fim)
+SELECT id_lugar, 'Festival de pipas', 'INFANTIL',
+       'Oficina de pipas com linha sem cerol e soltura acompanhada por monitores.',
+       TRUNC(SYSDATE) + 12 + 600/1440, TRUNC(SYSDATE) + 12 + 960/1440
+  FROM cl_lugar_lazer WHERE nome = 'Parque Ibirapuera';
+INSERT INTO cl_evento_lazer (id_lugar, titulo, categoria, descricao, dt_inicio, dt_fim)
+SELECT id_lugar, 'Corrida e caminhada orientada', 'ESPORTE',
+       'Percurso de 5 km com aquecimento e professores de educação física.',
+       TRUNC(SYSDATE) + 2 + 420/1440, TRUNC(SYSDATE) + 2 + 540/1440
+  FROM cl_lugar_lazer WHERE nome = 'Parque Villa-Lobos';
+INSERT INTO cl_evento_lazer (id_lugar, titulo, categoria, descricao, dt_inicio, dt_fim)
+SELECT id_lugar, 'Cinema ao ar livre: sessão família', 'CINEMA',
+       'Filme de animação no telão. Chegue cedo e leve uma canga.',
+       TRUNC(SYSDATE) + 5 + 1140/1440, TRUNC(SYSDATE) + 5 + 1260/1440
+  FROM cl_lugar_lazer WHERE nome = 'Parque Villa-Lobos';
+INSERT INTO cl_evento_lazer (id_lugar, titulo, categoria, descricao, dt_inicio, dt_fim)
+SELECT id_lugar, 'Oficina de grafite', 'OFICINA',
+       'Técnicas básicas de grafite com artistas da zona norte. Material incluso.',
+       TRUNC(SYSDATE) + 1 + 840/1440, TRUNC(SYSDATE) + 1 + 1020/1440
+  FROM cl_lugar_lazer WHERE nome = 'Parque da Juventude';
+INSERT INTO cl_evento_lazer (id_lugar, titulo, categoria, descricao, dt_inicio, dt_fim)
+SELECT id_lugar, 'Torneio de basquete 3x3', 'ESPORTE',
+       'Inscrição das equipes no local, a partir das 8h. Categorias juvenil e adulto.',
+       TRUNC(SYSDATE) + 6 + 540/1440, TRUNC(SYSDATE) + 6 + 900/1440
+  FROM cl_lugar_lazer WHERE nome = 'Parque da Juventude';
+INSERT INTO cl_evento_lazer (id_lugar, titulo, categoria, descricao, dt_inicio, dt_fim)
+SELECT id_lugar, 'Contação de histórias para crianças', 'INFANTIL',
+       'Histórias e brincadeiras para crianças de 3 a 8 anos, perto do parquinho.',
+       TRUNC(SYSDATE) + 900/1440, TRUNC(SYSDATE) + 990/1440
+  FROM cl_lugar_lazer WHERE nome = 'Parque do Belém';
+INSERT INTO cl_evento_lazer (id_lugar, titulo, categoria, descricao, dt_inicio, dt_fim)
+SELECT id_lugar, 'Passeio de observação de aves', 'CULTURA',
+       'Trilha guiada por biólogos, com binóculos emprestados no centro de visitantes.',
+       TRUNC(SYSDATE) + 4 + 480/1440, TRUNC(SYSDATE) + 4 + 660/1440
+  FROM cl_lugar_lazer WHERE nome = 'Parque Ecológico do Tietê';
+INSERT INTO cl_evento_lazer (id_lugar, titulo, categoria, descricao, dt_inicio, dt_fim)
+SELECT id_lugar, 'Roda de choro no coreto', 'MUSICA',
+       'Músicos da região tocam choro e samba; quem toca pode levar o instrumento.',
+       TRUNC(SYSDATE) + 2 + 960/1440, TRUNC(SYSDATE) + 2 + 1080/1440
+  FROM cl_lugar_lazer WHERE nome = 'Parque da Aclimação';
+INSERT INTO cl_evento_lazer (id_lugar, titulo, categoria, descricao, dt_inicio, dt_fim)
+SELECT id_lugar, 'Feira de trocas de livros e brinquedos', 'INFANTIL',
+       'Traga um livro ou brinquedo em bom estado e troque por outro.',
+       TRUNC(SYSDATE) + 6 + 600/1440, TRUNC(SYSDATE) + 6 + 900/1440
+  FROM cl_lugar_lazer WHERE nome = 'Parque da Água Branca';
+INSERT INTO cl_evento_lazer (id_lugar, titulo, categoria, descricao, dt_inicio, dt_fim)
+SELECT id_lugar, 'Futebol de várzea: final do campeonato', 'ESPORTE',
+       'Final do campeonato da região, com torcida organizada e food trucks.',
+       TRUNC(SYSDATE) + 7 + 540/1440, TRUNC(SYSDATE) + 7 + 720/1440
+  FROM cl_lugar_lazer WHERE nome = 'Parque Santo Dias';
+INSERT INTO cl_evento_lazer (id_lugar, titulo, categoria, descricao, dt_inicio, dt_fim)
+SELECT id_lugar, 'Teatro infantil: o jardim da cidade', 'INFANTIL',
+       'Peça sobre cuidar dos espaços públicos, para crianças de 4 a 10 anos.',
+       TRUNC(SYSDATE) + 3 + 900/1440, TRUNC(SYSDATE) + 3 + 990/1440
+  FROM cl_lugar_lazer WHERE nome = 'CEU · Butantã';
+INSERT INTO cl_evento_lazer (id_lugar, titulo, categoria, descricao, dt_inicio, dt_fim)
+SELECT id_lugar, 'Show de rap da quebrada', 'MUSICA',
+       'Artistas da zona leste no palco do teatro do CEU. Classificação 14 anos.',
+       TRUNC(SYSDATE) + 4 + 1080/1440, TRUNC(SYSDATE) + 4 + 1260/1440
+  FROM cl_lugar_lazer WHERE nome = 'CEU · Guaianases';
+INSERT INTO cl_evento_lazer (id_lugar, titulo, categoria, descricao, dt_inicio, dt_fim)
+SELECT id_lugar, 'Aula aberta de dança de salão', 'CULTURA',
+       'Forró, samba de gafieira e bolero para iniciantes. Não precisa de par.',
+       TRUNC(SYSDATE) + 1140/1440, TRUNC(SYSDATE) + 1260/1440
+  FROM cl_lugar_lazer WHERE nome = 'CEU · Casa Verde';
+INSERT INTO cl_evento_lazer (id_lugar, titulo, categoria, descricao, dt_inicio, dt_fim)
+SELECT id_lugar, 'Mostra de curtas da periferia', 'CINEMA',
+       'Curtas-metragens feitos por coletivos da zona sul, com bate-papo no fim.',
+       TRUNC(SYSDATE) + 8 + 1140/1440, TRUNC(SYSDATE) + 8 + 1260/1440
+  FROM cl_lugar_lazer WHERE nome = 'CEU · Campo Limpo';
+INSERT INTO cl_evento_lazer (id_lugar, titulo, categoria, descricao, dt_inicio, dt_fim)
+SELECT id_lugar, 'Exposição de fotografia urbana', 'CULTURA',
+       'Retratos de trabalhadores e trabalhadoras do centro de São Paulo.',
+       TRUNC(SYSDATE) + 600/1440, TRUNC(SYSDATE) + 1200/1440
+  FROM cl_lugar_lazer WHERE nome = 'Centro Cultural São Paulo';
+INSERT INTO cl_evento_lazer (id_lugar, titulo, categoria, descricao, dt_inicio, dt_fim)
+SELECT id_lugar, 'Sessão de cinema nacional', 'CINEMA',
+       'Clássico do cinema brasileiro na sala de projeção. Retire a senha 1 hora antes.',
+       TRUNC(SYSDATE) + 1 + 1080/1440, TRUNC(SYSDATE) + 1 + 1200/1440
+  FROM cl_lugar_lazer WHERE nome = 'Centro Cultural São Paulo';
+INSERT INTO cl_evento_lazer (id_lugar, titulo, categoria, descricao, dt_inicio, dt_fim)
+SELECT id_lugar, 'Oficina de cerâmica', 'OFICINA',
+       'Modelagem em argila para iniciantes. Vagas limitadas por ordem de chegada.',
+       TRUNC(SYSDATE) + 2 + 840/1440, TRUNC(SYSDATE) + 2 + 1020/1440
+  FROM cl_lugar_lazer WHERE nome = 'Casa de Cultura · Penha';
+INSERT INTO cl_evento_lazer (id_lugar, titulo, categoria, descricao, dt_inicio, dt_fim)
+SELECT id_lugar, 'Sarau aberto', 'CULTURA',
+       'Microfone aberto para poesia, música e leitura. Inscreva-se na hora.',
+       TRUNC(SYSDATE) + 5 + 1140/1440, TRUNC(SYSDATE) + 5 + 1260/1440
+  FROM cl_lugar_lazer WHERE nome = 'Casa de Cultura · Santo Amaro';
+INSERT INTO cl_evento_lazer (id_lugar, titulo, categoria, descricao, dt_inicio, dt_fim)
+SELECT id_lugar, 'Clube de leitura', 'CULTURA',
+       'Conversa sobre um romance brasileiro contemporâneo. Exemplares para empréstimo.',
+       TRUNC(SYSDATE) + 3 + 1080/1440, TRUNC(SYSDATE) + 3 + 1170/1440
+  FROM cl_lugar_lazer WHERE nome = 'Biblioteca Mário de Andrade';
+INSERT INTO cl_evento_lazer (id_lugar, titulo, categoria, descricao, dt_inicio, dt_fim)
+SELECT id_lugar, 'Palestra: histórias do centro', 'CULTURA',
+       'Pesquisadores contam a história dos prédios e ruas do centro.',
+       TRUNC(SYSDATE) - 1 + 1080/1440, TRUNC(SYSDATE) - 1 + 1200/1440
+  FROM cl_lugar_lazer WHERE nome = 'Biblioteca Mário de Andrade';
+INSERT INTO cl_evento_lazer (id_lugar, titulo, categoria, descricao, dt_inicio, dt_fim)
+SELECT id_lugar, 'Hora do conto', 'INFANTIL',
+       'Leitura em voz alta para crianças, com atividade de desenho depois.',
+       TRUNC(SYSDATE) + 1 + 600/1440, TRUNC(SYSDATE) + 1 + 660/1440
+  FROM cl_lugar_lazer WHERE nome = 'Biblioteca · Lapa';
+INSERT INTO cl_evento_lazer (id_lugar, titulo, categoria, descricao, dt_inicio, dt_fim)
+SELECT id_lugar, 'Natação para iniciantes: aula aberta', 'ESPORTE',
+       'Aula experimental na piscina. Traga touca, óculos e atestado médico.',
+       TRUNC(SYSDATE) + 4 + 540/1440, TRUNC(SYSDATE) + 4 + 600/1440
+  FROM cl_lugar_lazer WHERE nome = 'Centro Esportivo · Mooca';
+INSERT INTO cl_evento_lazer (id_lugar, titulo, categoria, descricao, dt_inicio, dt_fim)
+SELECT id_lugar, 'Vôlei de quadra: aula aberta', 'ESPORTE',
+       'Fundamentos de vôlei para adolescentes e adultos.',
+       TRUNC(SYSDATE) + 9 + 1020/1440, TRUNC(SYSDATE) + 9 + 1140/1440
+  FROM cl_lugar_lazer WHERE nome = 'Centro Esportivo · Tucuruvi';
+
+INSERT INTO cl_cidadao_evento (id_cidadao, id_evento)
+SELECT c.id_cidadao, e.id_evento
+  FROM cl_cidadao c, cl_evento_lazer e
+ WHERE c.email = 'ana.souza@exemplo.com' AND e.titulo = 'Orquestra no parque';
+INSERT INTO cl_cidadao_evento (id_cidadao, id_evento)
+SELECT c.id_cidadao, e.id_evento
+  FROM cl_cidadao c, cl_evento_lazer e
+ WHERE c.email = 'ana.souza@exemplo.com' AND e.titulo = 'Roda de choro no coreto';
+INSERT INTO cl_cidadao_evento (id_cidadao, id_evento)
+SELECT c.id_cidadao, e.id_evento
+  FROM cl_cidadao c, cl_evento_lazer e
+ WHERE c.email = 'felipe.rocha@exemplo.com' AND e.titulo = 'Corrida e caminhada orientada';
+
 COMMIT;
 
 
@@ -754,4 +984,7 @@ UNION ALL SELECT 'CL_CIDADAO_FEIRA', COUNT(*) FROM cl_cidadao_feira
 UNION ALL SELECT 'CL_PONTO_APOIO', COUNT(*) FROM cl_ponto_apoio
 UNION ALL SELECT 'CL_CONTATO_EMERGENCIA', COUNT(*) FROM cl_contato_emergencia
 UNION ALL SELECT 'CL_PROGRAMA_MORADIA', COUNT(*) FROM cl_programa_moradia
-UNION ALL SELECT 'CL_INSCRICAO_PROGRAMA', COUNT(*) FROM cl_inscricao_programa;
+UNION ALL SELECT 'CL_INSCRICAO_PROGRAMA', COUNT(*) FROM cl_inscricao_programa
+UNION ALL SELECT 'CL_LUGAR_LAZER', COUNT(*) FROM cl_lugar_lazer
+UNION ALL SELECT 'CL_EVENTO_LAZER', COUNT(*) FROM cl_evento_lazer
+UNION ALL SELECT 'CL_CIDADAO_EVENTO', COUNT(*) FROM cl_cidadao_evento;

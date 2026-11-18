@@ -8,6 +8,7 @@ import MeusEstudos from "../components/perfil/MeusEstudos.jsx";
 import MinhasFeiras from "../components/perfil/MinhasFeiras.jsx";
 import MinhasInscricoes from "../components/perfil/MinhasInscricoes.jsx";
 import MeusContatos from "../components/perfil/MeusContatos.jsx";
+import MinhaAgenda from "../components/perfil/MinhaAgenda.jsx";
 import MinhasRotas from "../components/perfil/MinhasRotas.jsx";
 import ResumoConta from "../components/perfil/ResumoConta.jsx";
 import { useApp } from "../contexto.js";
@@ -33,6 +34,7 @@ const ABAS = {
   alimentacao: [{ id: "feiras", rotulo: "Minhas feiras", icone: "ALIMENTACAO", Componente: MinhasFeiras }],
   habitacao: [{ id: "programas", rotulo: "Meus programas", icone: "HABITACAO", Componente: MinhasInscricoes }],
   seguranca: [{ id: "contatos", rotulo: "Contatos de emergência", icone: "TELEFONE", Componente: MeusContatos }],
+  lazer: [{ id: "agenda", rotulo: "Minha agenda", icone: "LAZER", Componente: MinhaAgenda }],
 };
 
 /**

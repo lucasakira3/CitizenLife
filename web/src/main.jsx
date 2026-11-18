@@ -10,6 +10,7 @@ import "./styles/mapa.css";
 import "./styles/rota.css";
 import "./styles/movimento.css";
 import "./styles/seguranca.css";
+import "./styles/lazer.css";
 import "./styles/habitacao.css";
 
 createRoot(document.getElementById("root")).render(

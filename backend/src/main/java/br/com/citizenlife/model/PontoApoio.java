@@ -29,24 +29,9 @@ public class PontoApoio {
     private double x;
     private double y;
 
-    /**
-     * Aberto no horário informado? Funciona também para quem vira a noite (abre 22:00, fecha 06:00).
-     * Um horário ilegível conta como fechado: na dúvida, o sistema não promete atendimento.
-     */
+    /** Aberto no horário informado? A regra fica em {@link Horario#estaAberto}. */
     public boolean estaAberto(LocalTime agora) {
-        if (aberto24h) {
-            return true;
-        }
-        try {
-            LocalTime inicio = LocalTime.parse(abre);
-            LocalTime fim = LocalTime.parse(fecha);
-            if (inicio.isBefore(fim)) {
-                return !agora.isBefore(inicio) && agora.isBefore(fim);
-            }
-            return !agora.isBefore(inicio) || agora.isBefore(fim);
-        } catch (RuntimeException e) {
-            return false;
-        }
+        return Horario.estaAberto(aberto24h, abre, fecha, agora);
     }
 
     /** Distância em linha reta, em metros, até um ponto do mapa (um endereço salvo, por exemplo). */

@@ -1,5 +1,5 @@
 // Os seis pilares da vida na cidade que o Citizen Life reúne, na ordem do menu.
-// Mobilidade, Alimentação, Segurança e Habitação já funcionam; os outros mostram o que vem na próxima versão.
+// Os seis pilares já funcionam, cada um com a sua primeira consulta e as abas no perfil.
 
 export const PILARES = [
   {
@@ -78,7 +78,7 @@ export const PILARES = [
     cor: "var(--pilar-lazer)",
     nome: "Lazer",
     icone: "LAZER",
-    disponivel: false,
+    disponivel: true,
     resumo: "Parques, centros culturais e eventos gratuitos perto de você.",
     consulta: "Programação gratuita por região",
     planos: [

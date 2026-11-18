@@ -6,7 +6,9 @@ import br.com.citizenlife.dao.ContatoEmergenciaDao;
 import br.com.citizenlife.dao.Conexao;
 import br.com.citizenlife.dao.EnderecoDao;
 import br.com.citizenlife.dao.InscricaoProgramaDao;
+import br.com.citizenlife.dao.EventoLazerDao;
 import br.com.citizenlife.dao.FeiraDao;
+import br.com.citizenlife.dao.LugarLazerDao;
 import br.com.citizenlife.dao.OcorrenciaDao;
 import br.com.citizenlife.dao.PontoApoioDao;
 import br.com.citizenlife.dao.ProgramaMoradiaDao;
@@ -15,6 +17,7 @@ import br.com.citizenlife.service.CidadaoService;
 import br.com.citizenlife.service.EnderecoService;
 import br.com.citizenlife.service.FeiraService;
 import br.com.citizenlife.service.HabitacaoService;
+import br.com.citizenlife.service.LazerService;
 import br.com.citizenlife.service.OcorrenciaService;
 import br.com.citizenlife.service.RotaService;
 import br.com.citizenlife.service.SegurancaService;
@@ -46,10 +49,11 @@ public final class CitizenLife {
         HabitacaoService habitacaoService = new HabitacaoService(new ProgramaMoradiaDao(), new InscricaoProgramaDao(), cidadaoService);
         SegurancaService segurancaService = new SegurancaService(new PontoApoioDao(), new ContatoEmergenciaDao(),
                 enderecoDao, cidadaoService);
+        LazerService lazerService = new LazerService(new LugarLazerDao(), new EventoLazerDao(), enderecoDao, cidadaoService);
 
         HttpServer servidor = HttpServer.create(new InetSocketAddress("127.0.0.1", porta), 0);
         servidor.createContext("/api", new Servidor(cidadaoService, rotaService, enderecoService, feiraService,
-                ocorrenciaService, segurancaService, habitacaoService));
+                ocorrenciaService, segurancaService, habitacaoService, lazerService));
         servidor.setExecutor(Executors.newFixedThreadPool(8));
         servidor.start();
 
