@@ -61,7 +61,7 @@ O Citizen Life reúne seis pilares da vida na cidade. Cada um começa por uma **
 | 🎓 | Educação | Vagas e cursos gratuitos | 🚧 em breve |
 | 🍴 | **Alimentação** | Feiras livres por dia e por zona | ✅ **pronto** |
 | 🛡️ | **Segurança** | Onde pedir ajuda perto de você | ✅ **pronto** |
-| 🏠 | Habitação | Programas de moradia para você | 🚧 em breve |
+| 🏠 | Habitação | Programas de moradia para você | ✅ **pronto** |
 | 🌳 | Lazer | Programação gratuita por região | 🚧 em breve |
 
 Na **Mobilidade**, o cidadão:
