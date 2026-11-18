@@ -12,7 +12,7 @@
 -- 1. Limpeza ----------------------------------------------------------
 BEGIN
     FOR tabela IN (SELECT table_name FROM user_tables
-                    WHERE table_name IN ('CL_CONTATO_EMERGENCIA', 'CL_PONTO_APOIO', 'CL_CIDADAO_FEIRA', 'CL_FEIRA', 'CL_ENDERECO', 'CL_ROTA_VIA', 'CL_ROTA',
+                    WHERE table_name IN ('CL_INSCRICAO_PROGRAMA', 'CL_PROGRAMA_MORADIA', 'CL_CONTATO_EMERGENCIA', 'CL_PONTO_APOIO', 'CL_CIDADAO_FEIRA', 'CL_FEIRA', 'CL_ENDERECO', 'CL_ROTA_VIA', 'CL_ROTA',
                                          'CL_OCORRENCIA', 'CL_CIDADAO', 'CL_VIA', 'CL_OCORRENCIA_VIA', 'CL_REGIAO'))
     LOOP
         EXECUTE IMMEDIATE 'DROP TABLE ' || tabela.table_name || ' CASCADE CONSTRAINTS PURGE';
@@ -167,6 +167,44 @@ CREATE TABLE cl_contato_emergencia (
     CONSTRAINT uk_cl_contato_nome UNIQUE (id_cidadao, nome)
 );
 
+
+-- Habitação · consulta: programas de moradia (Minha Casa Minha Vida, aluguel social, regularização...).
+-- "documentos" guarda a lista separada por ponto e vírgula; renda_maxima vazia = o programa não tem teto de renda.
+CREATE TABLE cl_programa_moradia (
+    id_programa      NUMBER(10)    GENERATED ALWAYS AS IDENTITY,
+    nome             VARCHAR2(100) NOT NULL,
+    tipo             VARCHAR2(15)  NOT NULL,
+    canal            VARCHAR2(10)  NOT NULL,
+    descricao        VARCHAR2(300) NOT NULL,
+    quem_tem_direito VARCHAR2(500) NOT NULL,
+    renda_maxima     NUMBER(9,2),
+    documentos       VARCHAR2(600) NOT NULL,
+    onde_inscrever   VARCHAR2(300) NOT NULL,
+    site             VARCHAR2(150),
+    CONSTRAINT pk_cl_programa_moradia PRIMARY KEY (id_programa),
+    CONSTRAINT uk_cl_programa_nome UNIQUE (nome),
+    CONSTRAINT ck_cl_programa_tipo CHECK (tipo IN ('CASA_PROPRIA', 'ALUGUEL', 'REGULARIZACAO', 'REFORMA', 'OUTRO')),
+    CONSTRAINT ck_cl_programa_canal CHECK (canal IN ('ONLINE', 'PRESENCIAL', 'AMBOS')),
+    CONSTRAINT ck_cl_programa_renda CHECK (renda_maxima IS NULL OR renda_maxima > 0)
+);
+
+-- Habitação · perfil: os programas em que o cidadão se inscreveu e em que pé está cada um (N:N cidadão × programa,
+-- com atributos próprios). Um cidadão só se inscreve uma vez em cada programa.
+CREATE TABLE cl_inscricao_programa (
+    id_inscricao   NUMBER(10)    GENERATED ALWAYS AS IDENTITY,
+    id_cidadao     NUMBER(10)    NOT NULL,
+    id_programa    NUMBER(10)    NOT NULL,
+    status         VARCHAR2(10)  DEFAULT 'INSCRITO' NOT NULL,
+    protocolo      VARCHAR2(30),
+    observacao     VARCHAR2(200),
+    dt_inscricao   DATE          DEFAULT SYSDATE NOT NULL,
+    dt_atualizacao DATE          DEFAULT SYSDATE NOT NULL,
+    CONSTRAINT pk_cl_inscricao_programa PRIMARY KEY (id_inscricao),
+    CONSTRAINT fk_cl_inscricao_cidadao FOREIGN KEY (id_cidadao) REFERENCES cl_cidadao (id_cidadao) ON DELETE CASCADE,
+    CONSTRAINT fk_cl_inscricao_programa FOREIGN KEY (id_programa) REFERENCES cl_programa_moradia (id_programa) ON DELETE CASCADE,
+    CONSTRAINT uk_cl_inscricao_prog UNIQUE (id_cidadao, id_programa),
+    CONSTRAINT ck_cl_inscricao_status CHECK (status IN ('INSCRITO', 'EM_ANALISE', 'APROVADO'))
+);
 
 -- 3. Dados de demonstração --------------------------------------------
 -- As chaves estrangeiras são buscadas por campos únicos (nome, e-mail, título),
@@ -588,6 +626,119 @@ SELECT id_cidadao, 'Lúcia Ferreira', '(11) 96666-0201', 'Mãe' FROM cl_cidadao 
 INSERT INTO cl_contato_emergencia (id_cidadao, nome, telefone, parentesco)
 SELECT id_cidadao, 'Gabriel Rocha', '(11) 95555-0301', 'Irmão' FROM cl_cidadao WHERE email = 'felipe.rocha@exemplo.com';
 
+-- 3.7 Programas de moradia (Habitação · consulta)
+-- Faixas e limites conferidos nas regras do MCMV de 2026 (Portaria MCID 333/2026). Os valores mudam: confirme no site oficial.
+INSERT INTO cl_programa_moradia (nome, tipo, canal, descricao, quem_tem_direito, renda_maxima, documentos, onde_inscrever, site)
+VALUES ('Minha Casa Minha Vida · Faixa 1', 'CASA_PROPRIA', 'AMBOS',
+        'Casa própria com o maior subsídio do programa, em empreendimentos selecionados pela Prefeitura.',
+        'Famílias com renda mensal bruta de até R$ 3.200, inscritas no CadÚnico e sem imóvel próprio. A seleção segue sorteio e critérios de prioridade, como mulheres responsáveis pela família, idosos e pessoas com deficiência.',
+        3200,
+        'RG e CPF de todos da família;CadÚnico atualizado (NIS);Comprovante de residência;Comprovante de renda ou autodeclaração;Certidão de nascimento ou casamento',
+        'Cadastro habitacional da Prefeitura (Sehab) nos períodos de inscrição. Para atualizar o CadÚnico, procure o CRAS da sua região.',
+        'https://prefeitura.sp.gov.br/web/habitacao');
+
+INSERT INTO cl_programa_moradia (nome, tipo, canal, descricao, quem_tem_direito, renda_maxima, documentos, onde_inscrever, site)
+VALUES ('Minha Casa Minha Vida · Faixas 2, 3 e 4', 'CASA_PROPRIA', 'AMBOS',
+        'Financiamento de imóvel novo ou usado com juros abaixo do mercado e, nas faixas de menor renda, subsídio na entrada.',
+        'Famílias com renda mensal bruta de até R$ 13.000: faixa 2 até R$ 5.000, faixa 3 até R$ 9.600 e faixa 4 até R$ 13.000. O crédito precisa ser aprovado pelo banco e o imóvel precisa estar dentro do valor máximo da faixa.',
+        13000,
+        'RG e CPF;Comprovante de renda dos últimos meses;Comprovante de residência;Certidão de nascimento ou casamento;Carteira de trabalho ou declaração do Imposto de Renda',
+        'Direto na Caixa ou em outro banco do programa, ou com a construtora do empreendimento que você escolheu.',
+        'https://www.caixa.gov.br');
+
+INSERT INTO cl_programa_moradia (nome, tipo, canal, descricao, quem_tem_direito, renda_maxima, documentos, onde_inscrever, site)
+VALUES ('Programa de moradia da CDHU', 'CASA_PROPRIA', 'AMBOS',
+        'Moradia popular do governo do Estado de São Paulo, com inscrição em períodos divulgados pela companhia.',
+        'Famílias de baixa renda que atendam aos critérios do programa estadual vigente. Cada período de inscrição publica as regras, as faixas de renda e os grupos com prioridade.',
+        NULL,
+        'RG e CPF;Comprovante de residência;Comprovante de renda familiar;Certidão de nascimento ou casamento',
+        'Site da CDHU ou atendimento presencial da companhia, nos períodos de inscrição.',
+        'https://www.cdhu.sp.gov.br');
+
+INSERT INTO cl_programa_moradia (nome, tipo, canal, descricao, quem_tem_direito, renda_maxima, documentos, onde_inscrever, site)
+VALUES ('Auxílio aluguel (aluguel social)', 'ALUGUEL', 'PRESENCIAL',
+        'Benefício temporário em dinheiro para pagar aluguel enquanto a família espera uma solução de moradia definitiva.',
+        'Famílias em emergência habitacional, como removidas de áreas de risco, atingidas por enchentes ou por obras públicas, que não tenham imóvel próprio. Depende de laudo da assistência social ou da Defesa Civil.',
+        NULL,
+        'RG ou documento oficial com foto;CPF;Comprovante de renda familiar ou autodeclaração;Comprovante de residência ou termo de remoção;Laudo da Defesa Civil ou relatório da assistência social',
+        'CRAS da sua região ou atendimento da Sehab. Parte do atendimento também pode ser consultada pelo SP156.',
+        'https://prefeitura.sp.gov.br/web/habitacao');
+
+INSERT INTO cl_programa_moradia (nome, tipo, canal, descricao, quem_tem_direito, renda_maxima, documentos, onde_inscrever, site)
+VALUES ('Auxílio aluguel para mulheres em situação de violência', 'ALUGUEL', 'PRESENCIAL',
+        'R$ 400 por mês, como complemento de renda para as despesas de moradia.',
+        'Mulheres vítimas de violência doméstica em situação de vulnerabilidade social, atendidas pela rede de proteção do município.',
+        NULL,
+        'RG ou documento oficial com foto;CPF;Comprovante de renda ou autodeclaração;Boletim de ocorrência ou relatório do atendimento, quando houver',
+        'Casa da Mulher Brasileira, Casas da Mulher e Centros de Defesa e de Convivência da Mulher (CDCM), da Secretaria de Direitos Humanos.',
+        'https://www.prefeitura.sp.gov.br/cidade/secretarias/direitos_humanos/mulheres/auxilio_aluguel/');
+
+INSERT INTO cl_programa_moradia (nome, tipo, canal, descricao, quem_tem_direito, renda_maxima, documentos, onde_inscrever, site)
+VALUES ('Locação social', 'ALUGUEL', 'PRESENCIAL',
+        'Apartamentos públicos alugados com valor subsidiado, para quem precisa de moradia sem comprar um imóvel.',
+        'Famílias de baixa renda em vulnerabilidade habitacional. A seleção e o valor do aluguel dependem da renda e da análise da Sehab.',
+        NULL,
+        'RG e CPF;Comprovante de renda familiar;Comprovante de residência;Certidão de nascimento ou casamento;CadÚnico atualizado',
+        'Atendimento da Secretaria Municipal de Habitação (Sehab) ou chamamentos públicos divulgados no Diário Oficial.',
+        'https://prefeitura.sp.gov.br/web/habitacao');
+
+INSERT INTO cl_programa_moradia (nome, tipo, canal, descricao, quem_tem_direito, renda_maxima, documentos, onde_inscrever, site)
+VALUES ('Regularização fundiária (escritura do seu imóvel)', 'REGULARIZACAO', 'PRESENCIAL',
+        'Transforma a posse em propriedade: a família passa a ter o documento do imóvel em seu nome.',
+        'Moradores de loteamentos, conjuntos ou núcleos urbanos irregulares já consolidados. Para famílias de baixa renda, a regularização é gratuita. Confira antes se o seu bairro já tem um processo aberto.',
+        NULL,
+        'RG e CPF;Comprovante de residência (conta de água ou luz);Contrato de compra e venda, recibo ou declaração de posse;Certidão de nascimento ou casamento;CadÚnico ou comprovante de renda',
+        'Sehab ou subprefeitura da sua região, que informam se o seu núcleo está em processo de regularização.',
+        'https://prefeitura.sp.gov.br/web/habitacao');
+
+INSERT INTO cl_programa_moradia (nome, tipo, canal, descricao, quem_tem_direito, renda_maxima, documentos, onde_inscrever, site)
+VALUES ('Reforma Casa Brasil', 'REFORMA', 'ONLINE',
+        'Crédito de R$ 10 mil a R$ 50 mil para reformar, melhorar ou ampliar a sua casa, com juros reduzidos.',
+        'Famílias com renda mensal bruta de até R$ 13.000 e imóvel em área urbana, que pode ser próprio, alugado ou cedido. A Caixa analisa o crédito, e quem mora em área de risco não pode participar.',
+        13000,
+        'RG e CPF;Comprovante de renda;Comprovante de residência;Fotos do imóvel que será reformado',
+        'Site ou aplicativo da Caixa (simulação e contratação 100% digitais) ou agência da Caixa.',
+        'https://www.caixa.gov.br');
+
+INSERT INTO cl_programa_moradia (nome, tipo, canal, descricao, quem_tem_direito, renda_maxima, documentos, onde_inscrever, site)
+VALUES ('Orientação jurídica sobre despejo e remoção', 'OUTRO', 'AMBOS',
+        'Defesa gratuita de quem foi notificado para sair de casa ou corre risco de remoção.',
+        'Pessoas que não podem pagar um advogado e enfrentam despejo, reintegração de posse ou remoção. Você tem direito de receber uma notificação formal ou um mandado judicial antes de sair.',
+        NULL,
+        'RG e CPF;Comprovante de residência;Notificação, mandado ou processo recebido;Contrato de aluguel ou documento que mostre a moradia',
+        'Núcleo de Habitação e Urbanismo da Defensoria Pública do Estado de São Paulo.',
+        'https://www.defensoria.sp.def.br');
+
+-- 3.8 Inscrições dos cidadãos nos programas (Habitação · perfil)
+INSERT INTO cl_inscricao_programa (id_cidadao, id_programa, status, protocolo, observacao, dt_inscricao, dt_atualizacao)
+SELECT c.id_cidadao, p.id_programa, 'EM_ANALISE', 'HAB-2026-048213', 'Entreguei os documentos no CRAS da Penha.', SYSDATE - 62, SYSDATE - 9
+  FROM cl_cidadao c, cl_programa_moradia p
+ WHERE c.email = 'ana.souza@exemplo.com' AND p.nome = 'Minha Casa Minha Vida · Faixa 1';
+INSERT INTO cl_inscricao_programa (id_cidadao, id_programa, status, protocolo, observacao, dt_inscricao, dt_atualizacao)
+SELECT c.id_cidadao, p.id_programa, 'INSCRITO', NULL, 'Simulação feita no aplicativo da Caixa.', SYSDATE - 4, SYSDATE - 4
+  FROM cl_cidadao c, cl_programa_moradia p
+ WHERE c.email = 'ana.souza@exemplo.com' AND p.nome = 'Reforma Casa Brasil';
+INSERT INTO cl_inscricao_programa (id_cidadao, id_programa, status, protocolo, observacao, dt_inscricao, dt_atualizacao)
+SELECT c.id_cidadao, p.id_programa, 'APROVADO', 'CX-77120-2026', 'Crédito aprovado. Falta a vistoria do imóvel.', SYSDATE - 40, SYSDATE - 6
+  FROM cl_cidadao c, cl_programa_moradia p
+ WHERE c.email = 'bruno.lima@exemplo.com' AND p.nome = 'Minha Casa Minha Vida · Faixas 2, 3 e 4';
+INSERT INTO cl_inscricao_programa (id_cidadao, id_programa, status, protocolo, observacao, dt_inscricao, dt_atualizacao)
+SELECT c.id_cidadao, p.id_programa, 'INSCRITO', NULL, NULL, SYSDATE - 15, SYSDATE - 15
+  FROM cl_cidadao c, cl_programa_moradia p
+ WHERE c.email = 'bruno.lima@exemplo.com' AND p.nome = 'Regularização fundiária (escritura do seu imóvel)';
+INSERT INTO cl_inscricao_programa (id_cidadao, id_programa, status, protocolo, observacao, dt_inscricao, dt_atualizacao)
+SELECT c.id_cidadao, p.id_programa, 'APROVADO', 'SEHAB-AA-2025-3391', 'Benefício ativo. Renovar o cadastro no próximo semestre.', SYSDATE - 180, SYSDATE - 30
+  FROM cl_cidadao c, cl_programa_moradia p
+ WHERE c.email = 'carla.mendes@exemplo.com' AND p.nome = 'Auxílio aluguel (aluguel social)';
+INSERT INTO cl_inscricao_programa (id_cidadao, id_programa, status, protocolo, observacao, dt_inscricao, dt_atualizacao)
+SELECT c.id_cidadao, p.id_programa, 'EM_ANALISE', 'CDM-2026-1184', NULL, SYSDATE - 21, SYSDATE - 3
+  FROM cl_cidadao c, cl_programa_moradia p
+ WHERE c.email = 'elisa.ferreira@exemplo.com' AND p.nome = 'Auxílio aluguel para mulheres em situação de violência';
+INSERT INTO cl_inscricao_programa (id_cidadao, id_programa, status, protocolo, observacao, dt_inscricao, dt_atualizacao)
+SELECT c.id_cidadao, p.id_programa, 'INSCRITO', NULL, 'Inscrição pelo site no período aberto em outubro.', SYSDATE - 28, SYSDATE - 28
+  FROM cl_cidadao c, cl_programa_moradia p
+ WHERE c.email = 'felipe.rocha@exemplo.com' AND p.nome = 'Programa de moradia da CDHU';
+
 COMMIT;
 
 
@@ -601,4 +752,6 @@ UNION ALL SELECT 'CL_ENDERECO', COUNT(*) FROM cl_endereco
 UNION ALL SELECT 'CL_FEIRA', COUNT(*) FROM cl_feira
 UNION ALL SELECT 'CL_CIDADAO_FEIRA', COUNT(*) FROM cl_cidadao_feira
 UNION ALL SELECT 'CL_PONTO_APOIO', COUNT(*) FROM cl_ponto_apoio
-UNION ALL SELECT 'CL_CONTATO_EMERGENCIA', COUNT(*) FROM cl_contato_emergencia;
+UNION ALL SELECT 'CL_CONTATO_EMERGENCIA', COUNT(*) FROM cl_contato_emergencia
+UNION ALL SELECT 'CL_PROGRAMA_MORADIA', COUNT(*) FROM cl_programa_moradia
+UNION ALL SELECT 'CL_INSCRICAO_PROGRAMA', COUNT(*) FROM cl_inscricao_programa;

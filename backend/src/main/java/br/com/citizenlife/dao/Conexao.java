@@ -1,7 +1,5 @@
 package br.com.citizenlife.dao;
 
-import br.com.citizenlife.exception.CitizenLifeException;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -16,6 +14,8 @@ import java.time.LocalDateTime;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
+
+import br.com.citizenlife.exception.CitizenLifeException;
 
 /**
  * Abre as conexões JDBC com o Oracle e traduz os erros do banco em mensagens claras.
@@ -35,7 +35,9 @@ public final class Conexao {
             "UK_CL_FEIRA_RUA_DIA", "Já existe uma feira para esta rua neste dia.",
             "PK_CL_CIDADAO_FEIRA", "Esta feira já está na sua lista de favoritas.",
             "UK_CL_PONTO_APOIO_NOME", "Já existe um ponto de apoio com este nome.",
-            "UK_CL_CONTATO_NOME", "Você já tem um contato com este nome.");
+            "UK_CL_CONTATO_NOME", "Você já tem um contato com este nome.",
+            "UK_CL_PROGRAMA_NOME", "Já existe um programa de moradia com este nome.",
+            "UK_CL_INSCRICAO_PROG", "Você já registrou a sua inscrição neste programa.");
 
     private Conexao() {
     }

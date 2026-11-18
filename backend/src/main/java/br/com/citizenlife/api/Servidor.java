@@ -1,35 +1,39 @@
 package br.com.citizenlife.api;
 
-import br.com.citizenlife.exception.CitizenLifeException;
-import br.com.citizenlife.exception.ValidacaoException;
-import br.com.citizenlife.model.Cidadao;
-import br.com.citizenlife.model.ContatoEmergencia;
-import br.com.citizenlife.model.Endereco;
-import br.com.citizenlife.model.Feira;
-import br.com.citizenlife.model.Ocorrencia;
-import br.com.citizenlife.model.PontoApoio;
-import br.com.citizenlife.model.Rota;
-import br.com.citizenlife.model.Via;
-import br.com.citizenlife.service.CidadaoService;
-import br.com.citizenlife.service.EnderecoService;
-import br.com.citizenlife.service.FeiraService;
-import br.com.citizenlife.service.OcorrenciaService;
-import br.com.citizenlife.service.RotaService;
-import br.com.citizenlife.service.SegurancaService;
-import com.sun.net.httpserver.HttpExchange;
-import com.sun.net.httpserver.HttpHandler;
-
 import java.io.IOException;
 import java.io.OutputStream;
-import java.time.LocalTime;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import com.sun.net.httpserver.HttpExchange;
+import com.sun.net.httpserver.HttpHandler;
+
+import br.com.citizenlife.exception.CitizenLifeException;
+import br.com.citizenlife.exception.ValidacaoException;
+import br.com.citizenlife.model.Cidadao;
+import br.com.citizenlife.model.ContatoEmergencia;
+import br.com.citizenlife.model.Endereco;
+import br.com.citizenlife.model.Feira;
+import br.com.citizenlife.model.InscricaoPrograma;
+import br.com.citizenlife.model.Ocorrencia;
+import br.com.citizenlife.model.PontoApoio;
+import br.com.citizenlife.model.ProgramaMoradia;
+import br.com.citizenlife.model.Rota;
+import br.com.citizenlife.model.Via;
+import br.com.citizenlife.service.CidadaoService;
+import br.com.citizenlife.service.EnderecoService;
+import br.com.citizenlife.service.FeiraService;
+import br.com.citizenlife.service.HabitacaoService;
+import br.com.citizenlife.service.OcorrenciaService;
+import br.com.citizenlife.service.RotaService;
+import br.com.citizenlife.service.SegurancaService;
 
 /**
  * A camada de interface: recebe as chamadas HTTP do site (React), chama a service certa e devolve JSON.
@@ -48,15 +52,18 @@ public class Servidor implements HttpHandler {
     private final FeiraService feiras;
     private final OcorrenciaService ocorrencias;
     private final SegurancaService seguranca;
+    private final HabitacaoService habitacao;
 
     public Servidor(CidadaoService cidadaos, RotaService rotas, EnderecoService enderecos,
-                    FeiraService feiras, OcorrenciaService ocorrencias, SegurancaService seguranca) {
+                    FeiraService feiras, OcorrenciaService ocorrencias, SegurancaService seguranca,
+                    HabitacaoService habitacao) {
         this.cidadaos = cidadaos;
         this.rotas = rotas;
         this.enderecos = enderecos;
         this.feiras = feiras;
         this.ocorrencias = ocorrencias;
         this.seguranca = seguranca;
+        this.habitacao = habitacao;
     }
 
     @Override
@@ -174,6 +181,24 @@ public class Servidor implements HttpHandler {
                     contato(seguranca.atualizarContato(ids.get(0), ids.get(1), lerContato(json), ator));
             case "DELETE /api/cidadaos/{id}/contatos/{id}" -> {
                 seguranca.excluirContato(ids.get(0), ids.get(1), ator);
+                yield null;
+            }
+
+            // Habitação: programas de moradia (com o filtro de renda) e as inscrições do cidadão
+            case "GET /api/programas-moradia" -> {
+                Double renda = habitacao.lerRenda(parametros.get("renda"));
+                yield habitacao.listarProgramas(parametros.get("tipo"), renda).stream()
+                        .map(programa -> programa(programa, renda)).toList();
+            }
+            case "GET /api/programas-moradia/{id}" -> programa(habitacao.buscarPrograma(ids.get(0)), null);
+            case "GET /api/cidadaos/{id}/inscricoes" ->
+                    habitacao.listarInscricoes(ids.get(0), ator).stream().map(this::inscricao).toList();
+            case "POST /api/cidadaos/{id}/inscricoes" ->
+                    inscricao(habitacao.inscrever(ids.get(0), lerInscricao(json), ator));
+            case "PUT /api/cidadaos/{id}/inscricoes/{id}" ->
+                    inscricao(habitacao.atualizar(ids.get(0), ids.get(1), lerInscricao(json), ator));
+            case "DELETE /api/cidadaos/{id}/inscricoes/{id}" -> {
+                habitacao.excluir(ids.get(0), ids.get(1), ator);
                 yield null;
             }
 
@@ -298,6 +323,37 @@ public class Servidor implements HttpHandler {
         return mapa;
     }
 
+    /** O programa com os documentos em lista. Com a renda informada, diz se ela atende ao teto do programa. */
+    private Map<String, Object> programa(ProgramaMoradia programa, Double renda) {
+        Map<String, Object> mapa = new LinkedHashMap<>();
+        mapa.put("id", programa.getId());
+        mapa.put("nome", programa.getNome());
+        mapa.put("tipo", programa.getTipo());
+        mapa.put("canal", programa.getCanal());
+        mapa.put("descricao", programa.getDescricao());
+        mapa.put("quemTemDireito", programa.getQuemTemDireito());
+        mapa.put("rendaMaxima", programa.getRendaMaxima());
+        mapa.put("documentos", programa.listaDocumentos());
+        mapa.put("ondeInscrever", programa.getOndeInscrever());
+        mapa.put("site", programa.getSite());
+        if (renda != null) {
+            mapa.put("compativel", programa.atendeRenda(renda));
+        }
+        return mapa;
+    }
+
+    private Map<String, Object> inscricao(InscricaoPrograma inscricao) {
+        Map<String, Object> mapa = new LinkedHashMap<>();
+        mapa.put("id", inscricao.getId());
+        mapa.put("programa", programa(inscricao.getPrograma(), null));
+        mapa.put("status", inscricao.getStatus());
+        mapa.put("protocolo", inscricao.getProtocolo());
+        mapa.put("observacao", inscricao.getObservacao());
+        mapa.put("dataInscricao", inscricao.getDataInscricao());
+        mapa.put("dataAtualizacao", inscricao.getDataAtualizacao());
+        return mapa;
+    }
+
     private Map<String, Object> ponto(String descricao, double x, double y) {
         Map<String, Object> mapa = new LinkedHashMap<>();
         mapa.put("descricao", descricao);
@@ -340,6 +396,17 @@ public class Servidor implements HttpHandler {
         contato.setTelefone(texto(json, "telefone"));
         contato.setParentesco(texto(json, "parentesco"));
         return contato;
+    }
+
+    private InscricaoPrograma lerInscricao(Map<String, Object> json) {
+        ProgramaMoradia programa = new ProgramaMoradia();
+        programa.setId(longa(json, "idPrograma"));
+        InscricaoPrograma inscricao = new InscricaoPrograma();
+        inscricao.setPrograma(programa);
+        inscricao.setStatus(texto(json, "status"));
+        inscricao.setProtocolo(texto(json, "protocolo"));
+        inscricao.setObservacao(texto(json, "observacao"));
+        return inscricao;
     }
 
     private List<Long> idsVias(Map<String, Object> json) {
